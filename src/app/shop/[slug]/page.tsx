@@ -1,21 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import BrandPromises from '@/components/home/BrandPromises';
-import { MOCK_PRODUCTS } from '@/lib/constants';
+import type { Product } from '@/types';
+import { getProductBySlug, getProducts } from '@/lib/supabase/services';
 import { formatPrice } from '@/lib/utils';
-import { Star, ShieldCheck, Ruler, Lock, Globe, Minus, Plus, Upload } from 'lucide-react';
+import { Star, ShieldCheck, Ruler, Lock, Globe, Minus, Plus, Upload, ShoppingBag } from 'lucide-react';
 
-export default function ProductDetailPage() {
-  // Use Floral Anarkali mock data
-  const product = MOCK_PRODUCTS[0];
+interface ProductPageProps {
+  params: Promise<{ slug: string }>;
+}
 
+export default function ProductDetailPage({ params }: ProductPageProps) {
+  const resolvedParams = use(params);
+  const slug = resolvedParams.slug;
+
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedFabric, setSelectedFabric] = useState(product.fabrics[0]?.name || 'Premium Cotton');
+  const [selectedFabric, setSelectedFabric] = useState('Premium Cotton');
   const [selectedSize, setSelectedSize] = useState('M');
   const [quantity, setQuantity] = useState(1);
   const [showCustomForm, setShowCustomForm] = useState(true);
@@ -29,8 +36,65 @@ export default function ProductDetailPage() {
   const [outfitLength, setOutfitLength] = useState('52');
   const [specialInstructions, setSpecialInstructions] = useState('');
 
+  useEffect(() => {
+    setLoading(true);
+    getProductBySlug(slug).then((data) => {
+      if (data) {
+        setProduct(data);
+        if (data.fabrics && data.fabrics.length > 0) {
+          setSelectedFabric(data.fabrics[0].name);
+        }
+      } else {
+        // Fallback to first available product if slug match fails
+        getProducts().then((all) => {
+          if (all && all.length > 0) {
+            setProduct(all[0]);
+          }
+        });
+      }
+      setLoading(false);
+    });
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#F8F5EF]">
+        <Header />
+        <main className="flex-1 flex items-center justify-center p-12">
+          <div className="text-center space-y-3">
+            <div className="w-8 h-8 border-2 border-[#23484A] border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs text-[#6F7775]">Loading product details...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#F8F5EF]">
+        <Header />
+        <main className="flex-1 flex items-center justify-center p-12">
+          <div className="text-center space-y-4 max-w-md bg-white p-8 border border-[#E5E0D8]">
+            <ShoppingBag className="w-10 h-10 text-[#C7A66A] mx-auto opacity-70" />
+            <h2 className="font-serif text-xl text-[#23484A]">Product Not Found</h2>
+            <p className="text-xs text-[#6F7775]">The product you requested is not available in the store database.</p>
+            <Link href="/shop" className="btn bg-[#23484A] text-white text-xs font-semibold px-6 py-2.5 inline-block">
+              BROWSE CATALOG
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   const customizationCharge = selectedSize === 'Custom' ? 500 : 0;
   const itemTotal = (product.price + customizationCharge) * quantity;
+  const imagesList = product.images && product.images.length > 0 ? product.images : [{ id: '1', url: '/images/placeholder.jpg', alt: product.name, order: 1 }];
+  const fabricsList = product.fabrics && product.fabrics.length > 0 ? product.fabrics : [{ id: 'f1', fabricId: '1', name: 'Premium Cotton', additionalPrice: 0 }];
+  const sizesList = product.sizes && product.sizes.length > 0 ? product.sizes : ['S', 'M', 'L', 'XL', 'Custom'];
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F5EF]">
@@ -42,7 +106,7 @@ export default function ProductDetailPage() {
           <div className="flex items-center gap-2 text-xs text-[#6F7775]">
             <Link href="/" className="hover:text-[#23484A]">Home</Link>
             <span>›</span>
-            <Link href="/shop" className="hover:text-[#23484A]">Custom Made</Link>
+            <Link href="/shop" className="hover:text-[#23484A]">Shop</Link>
             <span>›</span>
             <span className="text-[#23484A] font-medium">{product.name}</span>
           </div>
@@ -53,7 +117,7 @@ export default function ProductDetailPage() {
             <div className="lg:col-span-6 space-y-4">
               <div className="relative aspect-[3/4] w-full bg-white rounded-sm overflow-hidden border border-[#E5E0D8] shadow-sm">
                 <Image
-                  src={product.images[selectedImage]?.url || product.images[0].url}
+                  src={imagesList[selectedImage]?.url || imagesList[0].url}
                   alt={product.name}
                   fill
                   priority
@@ -63,19 +127,21 @@ export default function ProductDetailPage() {
               </div>
 
               {/* Gallery Thumbnails */}
-              <div className="flex items-center gap-3">
-                {product.images.map((img, idx) => (
-                  <button
-                    key={img.id}
-                    onClick={() => setSelectedImage(idx)}
-                    className={`relative w-20 h-24 rounded-xs overflow-hidden border transition-all ${
-                      selectedImage === idx ? 'border-[#23484A] ring-1 ring-[#23484A]' : 'border-[#E5E0D8] opacity-70 hover:opacity-100'
-                    }`}
-                  >
-                    <Image src={img.url} alt={img.alt} fill className="object-cover object-top" />
-                  </button>
-                ))}
-              </div>
+              {imagesList.length > 1 && (
+                <div className="flex items-center gap-3">
+                  {imagesList.map((img, idx) => (
+                    <button
+                      key={img.id || idx}
+                      onClick={() => setSelectedImage(idx)}
+                      className={`relative w-20 h-24 rounded-xs overflow-hidden border transition-all ${
+                        selectedImage === idx ? 'border-[#23484A] ring-1 ring-[#23484A]' : 'border-[#E5E0D8] opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <Image src={img.url} alt={img.alt || product.name} fill className="object-cover object-top" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right Product Details */}
@@ -86,7 +152,7 @@ export default function ProductDetailPage() {
                 </h1>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-xl font-semibold text-[#23484A]">
-                    From {formatPrice(product.price)}
+                    {formatPrice(product.price)}
                   </span>
                   <div className="flex items-center gap-1 text-xs text-[#C7A66A]">
                     <div className="flex items-center">
@@ -111,11 +177,11 @@ export default function ProductDetailPage() {
                 <select
                   value={selectedFabric}
                   onChange={(e) => setSelectedFabric(e.target.value)}
-                  className="w-full input select bg-white text-xs text-[#243234]"
+                  className="w-full border border-[#E5E0D8] p-2.5 bg-white text-xs text-[#243234] focus:outline-none focus:border-[#23484A]"
                 >
-                  {product.fabrics.map((fab) => (
-                    <option key={fab.id} value={fab.name}>
-                      {fab.name} {fab.additionalPrice > 0 ? `(+${formatPrice(fab.additionalPrice)})` : ''}
+                  {fabricsList.map((fab) => (
+                    <option key={fab.id || fab.name} value={fab.name}>
+                      {fab.name} {fab.additionalPrice && fab.additionalPrice > 0 ? `(+${formatPrice(fab.additionalPrice)})` : ''}
                     </option>
                   ))}
                 </select>
@@ -132,7 +198,7 @@ export default function ProductDetailPage() {
                   </Link>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map((sz) => (
+                  {sizesList.map((sz) => (
                     <button
                       key={sz}
                       onClick={() => {
@@ -177,11 +243,11 @@ export default function ProductDetailPage() {
               <div className="space-y-3 pt-2">
                 <button
                   onClick={() => setShowCustomForm(true)}
-                  className="w-full btn btn-primary bg-[#23484A] text-white font-semibold py-3.5 text-xs uppercase tracking-wider"
+                  className="w-full btn bg-[#23484A] text-white font-semibold py-3.5 text-xs uppercase tracking-wider hover:bg-[#1A3536]"
                 >
                   CUSTOMIZE & ADD TO CART
                 </button>
-                <button className="w-full btn btn-secondary border-[#23484A] text-[#23484A] font-semibold py-3.5 text-xs uppercase tracking-wider hover:bg-[#23484A] hover:text-white">
+                <button className="w-full btn border border-[#23484A] text-[#23484A] font-semibold py-3.5 text-xs uppercase tracking-wider hover:bg-[#23484A] hover:text-white transition-colors">
                   BUY NOW
                 </button>
               </div>
@@ -208,7 +274,7 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Customization Form Section (Matching Reference middle right UI) */}
+          {/* Customization Form Section */}
           {showCustomForm && (
             <div className="bg-white p-6 md:p-8 border border-[#E5E0D8] space-y-6">
               <div className="border-b border-[#E5E0D8] pb-4">
@@ -221,81 +287,81 @@ export default function ProductDetailPage() {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Form Fields */}
                 <div className="lg:col-span-7 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4 text-xs">
                     <div>
-                      <label className="input-label">Bust (inches)</label>
+                      <label className="block text-[#243234] font-semibold mb-1">Bust (inches)</label>
                       <input
                         type="text"
                         value={bust}
                         onChange={(e) => setBust(e.target.value)}
-                        className="input"
+                        className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
                         placeholder="34"
                       />
                     </div>
                     <div>
-                      <label className="input-label">Waist (inches)</label>
+                      <label className="block text-[#243234] font-semibold mb-1">Waist (inches)</label>
                       <input
                         type="text"
                         value={waist}
                         onChange={(e) => setWaist(e.target.value)}
-                        className="input"
+                        className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
                         placeholder="28"
                       />
                     </div>
                     <div>
-                      <label className="input-label">Hips (inches)</label>
+                      <label className="block text-[#243234] font-semibold mb-1">Hips (inches)</label>
                       <input
                         type="text"
                         value={hips}
                         onChange={(e) => setHips(e.target.value)}
-                        className="input"
+                        className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
                         placeholder="36"
                       />
                     </div>
                     <div>
-                      <label className="input-label">Shoulder (inches)</label>
+                      <label className="block text-[#243234] font-semibold mb-1">Shoulder (inches)</label>
                       <input
                         type="text"
                         value={shoulder}
                         onChange={(e) => setShoulder(e.target.value)}
-                        className="input"
+                        className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
                         placeholder="14"
                       />
                     </div>
                     <div>
-                      <label className="input-label">Sleeve Length (inches)</label>
+                      <label className="block text-[#243234] font-semibold mb-1">Sleeve Length (inches)</label>
                       <input
                         type="text"
                         value={sleeveLength}
                         onChange={(e) => setSleeveLength(e.target.value)}
-                        className="input"
+                        className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
                         placeholder="22"
                       />
                     </div>
                     <div>
-                      <label className="input-label">Outfit Length (inches)</label>
+                      <label className="block text-[#243234] font-semibold mb-1">Outfit Length (inches)</label>
                       <input
                         type="text"
                         value={outfitLength}
                         onChange={(e) => setOutfitLength(e.target.value)}
-                        className="input"
+                        className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
                         placeholder="52"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label className="input-label">Special Instructions (Optional)</label>
+                  <div className="text-xs">
+                    <label className="block text-[#243234] font-semibold mb-1">Special Instructions (Optional)</label>
                     <textarea
                       value={specialInstructions}
                       onChange={(e) => setSpecialInstructions(e.target.value)}
                       placeholder="e.g. I want it with full sleeves and back round neck."
-                      className="input"
+                      className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
                     />
                   </div>
 
-                  <div>
-                    <label className="input-label">Upload Reference (Optional)</label>
+                  <div className="text-xs">
+                    <label className="block text-[#243234] font-semibold mb-1">Upload Reference (Optional)</label>
                     <div className="flex items-center gap-3 p-3 border border-dashed border-[#E5E0D8] bg-[#F8F5EF] rounded-xs cursor-pointer">
                       <Upload className="w-4 h-4 text-[#23484A]" />
                       <span className="text-xs text-[#6F7775]">Choose File (No file chosen)</span>
@@ -311,7 +377,7 @@ export default function ProductDetailPage() {
 
                   <div className="flex items-center gap-3">
                     <div className="relative w-16 h-20 bg-white border border-[#E5E0D8] overflow-hidden shrink-0">
-                      <Image src={product.images[0].url} alt={product.name} fill className="object-cover" />
+                      <Image src={imagesList[0].url} alt={product.name} fill className="object-cover" />
                     </div>
                     <div className="flex-1 text-xs">
                       <h4 className="font-serif font-semibold text-[#243234] text-sm">{product.name}</h4>
@@ -331,7 +397,7 @@ export default function ProductDetailPage() {
                     </div>
                   </div>
 
-                  <Link href="/cart" className="w-full btn btn-primary bg-[#23484A] text-white py-3 text-xs font-semibold uppercase tracking-wider block text-center mt-4">
+                  <Link href="/cart" className="w-full btn bg-[#23484A] text-white py-3 text-xs font-semibold uppercase tracking-wider block text-center mt-4 hover:bg-[#1A3536]">
                     ADD TO CART
                   </Link>
                 </div>
@@ -341,6 +407,7 @@ export default function ProductDetailPage() {
         </div>
       </main>
 
+      <BrandPromises />
       <Footer />
     </div>
   );
