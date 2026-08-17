@@ -1,6 +1,9 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, Phone, Mail, ArrowUpRight } from 'lucide-react';
+import { MapPin, Phone, Mail, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { BRAND, FOOTER_LINKS } from '@/lib/constants';
 
 function InstagramIcon({ className = 'w-4 h-4' }: { className?: string }) {
@@ -12,10 +15,19 @@ function InstagramIcon({ className = 'w-4 h-4' }: { className?: string }) {
 }
 
 export default function Footer() {
+  const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({});
+
+  const toggleSection = (section: string) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   return (
     <footer className="bg-[#FFFFFF] text-[#243234] border-t border-[#E5E0D8]">
       <div className="container-main py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 md:gap-8 lg:gap-12">
           {/* Brand Info & Instagram Bio Column */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-3 group inline-block">
@@ -59,62 +71,107 @@ export default function Footer() {
           </div>
 
           {/* Shop Column */}
-          <div>
-            <h4 className="font-sans text-xs font-bold uppercase tracking-[0.15em] text-[#23484A] mb-4">
-              SHOP
-            </h4>
-            <ul className="space-y-2.5">
-              {FOOTER_LINKS.shop.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-xs text-[#6F7775] hover:text-[#23484A] transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+          <div className="border-b border-[#E5E0D8]/60 pb-3 md:border-b-0 md:pb-0">
+            <button
+              type="button"
+              onClick={() => toggleSection('shop')}
+              className="w-full flex items-center justify-between font-sans text-xs font-bold uppercase tracking-[0.15em] text-[#23484A] py-1 md:py-0 md:mb-4 md:pointer-events-none text-left"
+            >
+              <span>SHOP</span>
+              <ChevronDown
+                className={`w-4 h-4 md:hidden text-[#23484A] transition-transform duration-200 ${
+                  openSections.shop ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+            <div
+              className={`transition-all duration-200 md:!block ${
+                openSections.shop ? 'block pt-2 pb-1' : 'hidden md:block'
+              }`}
+            >
+              <ul className="space-y-2.5">
+                {FOOTER_LINKS.shop.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-xs text-[#6F7775] hover:text-[#23484A] transition-colors block py-0.5 md:py-0"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* Help Column */}
-          <div>
-            <h4 className="font-sans text-xs font-bold uppercase tracking-[0.15em] text-[#23484A] mb-4">
-              HELP
-            </h4>
-            <ul className="space-y-2.5">
-              {FOOTER_LINKS.help.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
-                    className="text-xs text-[#6F7775] hover:text-[#23484A] transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+          <div className="border-b border-[#E5E0D8]/60 pb-3 md:border-b-0 md:pb-0">
+            <button
+              type="button"
+              onClick={() => toggleSection('help')}
+              className="w-full flex items-center justify-between font-sans text-xs font-bold uppercase tracking-[0.15em] text-[#23484A] py-1 md:py-0 md:mb-4 md:pointer-events-none text-left"
+            >
+              <span>HELP</span>
+              <ChevronDown
+                className={`w-4 h-4 md:hidden text-[#23484A] transition-transform duration-200 ${
+                  openSections.help ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+            <div
+              className={`transition-all duration-200 md:!block ${
+                openSections.help ? 'block pt-2 pb-1' : 'hidden md:block'
+              }`}
+            >
+              <ul className="space-y-2.5">
+                {FOOTER_LINKS.help.map((link) => (
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
+                      className="text-xs text-[#6F7775] hover:text-[#23484A] transition-colors block py-0.5 md:py-0"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* Contact Column */}
-          <div>
-            <h4 className="font-sans text-xs font-bold uppercase tracking-[0.15em] text-[#23484A] mb-4">
-              CONTACT
-            </h4>
-            <ul className="space-y-3 text-xs text-[#6F7775]">
-              <li className="flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-[#23484A] shrink-0" />
-                <span>+91 12345 67890</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail className="w-3.5 h-3.5 text-[#23484A] shrink-0" />
-                <span className="truncate">hello@fabstorybyfasna.com</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-[#23484A] shrink-0" />
-                <span>Based in Kerala, India</span>
-              </li>
-            </ul>
+          <div className="border-b border-[#E5E0D8]/60 pb-3 md:border-b-0 md:pb-0">
+            <button
+              type="button"
+              onClick={() => toggleSection('contact')}
+              className="w-full flex items-center justify-between font-sans text-xs font-bold uppercase tracking-[0.15em] text-[#23484A] py-1 md:py-0 md:mb-4 md:pointer-events-none text-left"
+            >
+              <span>CONTACT</span>
+              <ChevronDown
+                className={`w-4 h-4 md:hidden text-[#23484A] transition-transform duration-200 ${
+                  openSections.contact ? 'rotate-180' : ''
+                }`}
+              />
+            </button>
+            <div
+              className={`transition-all duration-200 md:!block ${
+                openSections.contact ? 'block pt-2 pb-1' : 'hidden md:block'
+              }`}
+            >
+              <ul className="space-y-3 text-xs text-[#6F7775]">
+                <li className="flex items-center gap-2 py-0.5 md:py-0">
+                  <Phone className="w-3.5 h-3.5 text-[#23484A] shrink-0" />
+                  <span>+91 12345 67890</span>
+                </li>
+                <li className="flex items-center gap-2 py-0.5 md:py-0">
+                  <Mail className="w-3.5 h-3.5 text-[#23484A] shrink-0" />
+                  <span className="truncate">hello@fabstorybyfasna.com</span>
+                </li>
+                <li className="flex items-center gap-2 py-0.5 md:py-0">
+                  <MapPin className="w-3.5 h-3.5 text-[#23484A] shrink-0" />
+                  <span>Based in Kerala, India</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 

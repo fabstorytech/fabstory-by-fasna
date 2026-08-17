@@ -204,28 +204,32 @@ p {
   gap: 0.5rem;
   font-family: var(--font-sans);
   font-size: var(--text-body-sm);
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 0.875rem 2rem;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
   border: 1px solid transparent;
   cursor: pointer;
-  transition:
-    background-color var(--duration-normal) var(--ease-smooth),
-    color var(--duration-normal) var(--ease-smooth),
-    border-color var(--duration-normal) var(--ease-smooth),
-    transform var(--duration-fast) var(--ease-smooth);
+  box-shadow: 0 2px 8px rgba(35, 72, 74, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
   white-space: nowrap;
 }
 
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(35, 72, 74, 0.16);
+}
+
 .btn:active {
-  transform: scale(0.98);
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 6px rgba(35, 72, 74, 0.1);
 }
 
 .btn:focus-visible {
   outline: 2px solid var(--color-teal);
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 /* Primary — Deep Teal */
@@ -236,13 +240,15 @@ p {
 }
 
 .btn-primary:hover {
-  background-color: var(--color-teal-light);
-  border-color: var(--color-teal-light);
+  background-color: var(--color-teal-dark);
+  border-color: var(--color-teal-dark);
+  color: #FFFFFF;
 }
 
 /* Secondary — Outlined */
 .btn-secondary {
-  background-color: transparent;
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
   color: var(--color-teal);
   border-color: var(--color-teal);
 }
@@ -262,6 +268,7 @@ p {
 .btn-gold:hover {
   background-color: var(--color-gold-dark);
   border-color: var(--color-gold-dark);
+  box-shadow: 0 6px 20px rgba(199, 166, 106, 0.3);
 }
 
 /* Ghost */
@@ -269,21 +276,24 @@ p {
   background-color: transparent;
   color: var(--color-dark);
   border-color: transparent;
+  box-shadow: none;
 }
 
 .btn-ghost:hover {
   background-color: var(--color-surface);
+  box-shadow: none;
+  transform: none;
 }
 
 /* Small */
 .btn-sm {
-  padding: 0.625rem 1.25rem;
+  padding: 0.5rem 1.25rem;
   font-size: var(--text-xs);
 }
 
 /* Large */
 .btn-lg {
-  padding: 1rem 2.5rem;
+  padding: 1rem 2.75rem;
   font-size: var(--text-body);
 }
 
