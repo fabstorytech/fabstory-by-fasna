@@ -93,13 +93,16 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         </div>
 
         {/* Action Button: Select options */}
-        <div className="pt-1 sm:pt-2 mt-auto">
-          <Link
-            href={`/shop/${product.slug}`}
-            className="w-full btn bg-[#23484A] hover:bg-[#1A3536] text-white text-[10px] sm:text-xs font-semibold py-2 sm:py-2.5 px-2 text-center block transition-colors tracking-wider uppercase shadow-2xs rounded-2xs"
-          >
-            Select options
-          </Link>
+<div className="pt-1 sm:pt-2 mt-auto">
+<div className="pt-1 sm:pt-2 mt-auto">
+  <Link
+    href={`/shop/${product.slug}`}
+    className="w-full bg-[#23484A] hover:bg-[#1A3536] text-white text-[7px] sm:text-[8px] font-semibold py-1 sm:py-1.5 px-2 text-center block transition-colors tracking-[0.08em] uppercase shadow-sm rounded-[8px]"
+  >
+    SELECT OPTIONS
+  </Link>
+</div>
+
         </div>
       </div>
     </div>

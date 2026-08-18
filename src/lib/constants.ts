@@ -98,7 +98,7 @@ export const FOOTER_LINKS = {
 
 export const PLACEHOLDER_IMAGES = {
   hero: '/images/hero-latest.jpg',
-  heroMobile: '/images/hero-mobile.jpg',
+  heroMobile: '/images/mobileview/fabstore-mobilebanner.png',
   about: '/images/about.jpg',
   craftsmanship: '/images/craftsmanship.jpg',
   customMade: '/images/custom-made.jpg',
