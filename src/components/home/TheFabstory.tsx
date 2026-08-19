@@ -9,13 +9,13 @@ export default function TheFabstory() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           {/* Left Artisan/Sewing Image */}
           <div className="lg:col-span-6 relative">
-            <div className="relative aspect-[4/3] md:aspect-[14/10] w-full rounded-sm overflow-hidden border border-[#E5E0D8] shadow-md">
+            <div className="relative aspect-[4/5] sm:aspect-[4/3] md:aspect-[14/11] w-full rounded-sm overflow-hidden border border-[#E5E0D8] shadow-md">
               <Image
                 src="/images/craftsmanship.jpg"
                 alt="Craftsmanship at Fabstory by Fasna"
                 fill
                 sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
+                className="object-cover object-top"
               />
             </div>
           </div>
