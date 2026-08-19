@@ -81,28 +81,25 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         </Link>
 
         {/* Pricing */}
-        <div className="flex items-center gap-1.5 sm:gap-2 pt-0.5">
-          <span className="text-xs sm:text-sm font-bold text-[#243234]">
+        <div className="flex items-baseline gap-1.5 sm:gap-2 pt-0.5 flex-wrap">
+          <span className="text-xs sm:text-sm font-bold text-[#243234] shrink-0">
             {formatPrice(product.price)}
           </span>
           {product.compareAtPrice && (
-            <span className="text-[10px] sm:text-xs text-[#6F7775] line-through">
+            <span className="text-[10px] sm:text-xs text-[#6F7775] line-through shrink-0">
               {formatPrice(product.compareAtPrice)}
             </span>
           )}
         </div>
 
         {/* Action Button: Select options */}
-<div className="pt-1 sm:pt-2 mt-auto">
-<div className="pt-1 sm:pt-2 mt-auto">
-  <Link
-    href={`/shop/${product.slug}`}
-    className="w-full bg-[#23484A] hover:bg-[#1A3536] text-white text-[7px] sm:text-[8px] font-semibold py-1 sm:py-1.5 px-2 text-center block transition-colors tracking-[0.08em] uppercase shadow-sm rounded-[8px]"
-  >
-    SELECT OPTIONS
-  </Link>
-</div>
-
+        <div className="pt-1 sm:pt-2 mt-auto">
+          <Link
+            href={`/shop/${product.slug}`}
+            className="w-full bg-[#23484A] hover:bg-[#1A3536] text-white text-[7px] sm:text-[8px] font-semibold py-1 sm:py-1.5 px-2 text-center block transition-colors tracking-[0.08em] uppercase shadow-sm rounded-[8px]"
+          >
+            SELECT OPTIONS
+          </Link>
         </div>
       </div>
     </div>
