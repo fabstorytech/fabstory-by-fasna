@@ -268,7 +268,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
                 </div>
                 <div className="flex flex-col items-center gap-1">
                   <Globe className="w-4 h-4 text-[#23484A]" />
-                  <span>Worldwide Shipping</span>
+                  <span>All India Shipping</span>
                 </div>
               </div>
             </div>
@@ -379,11 +379,11 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
                     <div className="relative w-16 h-20 bg-white border border-[#E5E0D8] overflow-hidden shrink-0">
                       <Image src={imagesList[0].url} alt={product.name} fill className="object-cover" />
                     </div>
-                    <div className="flex-1 text-xs">
-                      <h4 className="font-serif font-semibold text-[#243234] text-sm">{product.name}</h4>
+                    <div className="flex-1 text-xs min-w-0">
+                      <h4 className="font-serif font-semibold text-[#243234] text-sm truncate">{product.name}</h4>
                       <p className="text-[#6F7775]">{selectedFabric} - {selectedSize}</p>
                     </div>
-                    <span className="text-xs font-semibold text-[#23484A]">{formatPrice(product.price)}</span>
+                    <span className="text-xs font-semibold text-[#23484A] shrink-0">{formatPrice(product.price)}</span>
                   </div>
 
                   <div className="space-y-2 pt-4 border-t border-[#E5E0D8] text-xs text-[#6F7775]">
