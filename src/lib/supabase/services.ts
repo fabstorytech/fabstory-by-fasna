@@ -44,7 +44,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   const defaultSettings: SiteSettings = {
     id: 'default',
     heroDesktopImage: '/images/hero-latest.jpg',
-    heroMobileImage: '/images/hero-mobile.jpg',
+    heroMobileImage: '/images/mobileview/fabstore-mobilebanner.png',
     heroTitle: 'Where Style Meets Your Story',
     heroSubtitle: 'Specially curated for Women',
   };
