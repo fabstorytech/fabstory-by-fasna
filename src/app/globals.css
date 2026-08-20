@@ -182,13 +182,13 @@ p {
 }
 
 .section-padding {
-  padding-top: var(--spacing-section-sm);
+  padding-top: 1.5rem;
   padding-bottom: var(--spacing-section-sm);
 }
 
 @media (min-width: 768px) {
   .section-padding {
-    padding-top: var(--spacing-section);
+    padding-top: 2rem;
     padding-bottom: var(--spacing-section);
   }
 }

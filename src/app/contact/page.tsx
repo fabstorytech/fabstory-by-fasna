@@ -15,7 +15,7 @@ export default function ContactPage() {
       <Header />
 
       <main className="flex-1 section-padding">
-        <div className="container-main space-y-12">
+        <div className="container-main space-y-6 sm:space-y-8">
           <div className="text-center space-y-2">
             <span className="text-xs uppercase tracking-[0.25em] text-[#C7A66A] font-semibold">
               GET IN TOUCH

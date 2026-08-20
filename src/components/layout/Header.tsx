@@ -12,10 +12,11 @@ interface HeaderProps {
   wishlistCount?: number;
 }
 
-export default function Header({ cartCount = 2, wishlistCount = 0 }: HeaderProps) {
+export default function Header({ cartCount = 2, wishlistCount: initialWishlistCount }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [wishlistCount, setWishlistCount] = useState(initialWishlistCount || 0);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,13 +26,34 @@ export default function Header({ cartCount = 2, wishlistCount = 0 }: HeaderProps
         setIsScrolled(false);
       }
     };
+
+    const updateWishlistFromStorage = () => {
+      try {
+        const saved = localStorage.getItem('fabstory_wishlist');
+        if (saved) {
+          const list = JSON.parse(saved);
+          setWishlistCount(list.length);
+        } else {
+          setWishlistCount(0);
+        }
+      } catch {
+        setWishlistCount(0);
+      }
+    };
+
+    updateWishlistFromStorage();
+
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('wishlist-updated', updateWishlistFromStorage);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('wishlist-updated', updateWishlistFromStorage);
+    };
   }, []);
 
   return (
     <>
-      {/* DESKTOP HEADER (lg:flex) — 100% UNTOUCHED */}
+      {/* DESKTOP HEADER (lg:flex) */}
       <header
         className={`hidden lg:flex sticky top-0 z-50 h-20 md:h-24 items-center transition-colors duration-300 ${
           isScrolled
@@ -117,13 +139,13 @@ export default function Header({ cartCount = 2, wishlistCount = 0 }: HeaderProps
             </Link>
 
             <Link
-              href="/account/wishlist"
+              href="/account"
               aria-label="Wishlist"
               className="relative text-[#243234] hover:text-[#23484A] transition-colors p-1"
             >
-              <Heart className="w-4 h-4 sm:w-5 sm:h-5 stroke-[1.75]" />
+              <Heart className={`w-4 h-4 sm:w-5 sm:h-5 stroke-[1.75] ${wishlistCount > 0 ? 'fill-[#C7A66A] text-[#C7A66A]' : ''}`} />
               {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#C7A66A] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-[#C7A66A] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
                   {wishlistCount}
                 </span>
               )}
@@ -143,13 +165,13 @@ export default function Header({ cartCount = 2, wishlistCount = 0 }: HeaderProps
         </div>
       </header>
 
-      {/* MOBILE HEADER (lg:hidden) — Art-Directed Compact 64px Mobile Header */}
+      {/* MOBILE HEADER (lg:hidden) */}
       <header
         className={`lg:hidden sticky top-0 z-50 w-full transition-all duration-300 bg-[#F8F5EF] border-b border-[#E5E0D8] ${
           isScrolled ? 'h-[56px]' : 'h-[62px]'
         } flex items-center justify-between px-3.5`}
       >
-        {/* Left: Mobile Logo Badge — Perfect 48px size with legible logo text */}
+        {/* Left: Mobile Logo Badge */}
         <Link href="/" className="flex items-center">
           <div
             className={`rounded-full overflow-hidden border border-[#C7A66A]/40 bg-white p-0.5 shadow-2xs transition-all duration-300 ${
@@ -169,13 +191,13 @@ export default function Header({ cartCount = 2, wishlistCount = 0 }: HeaderProps
           </div>
         </Link>
 
-        {/* Right Mobile Actions: Clean touch targets with properly positioned count badges */}
+        {/* Right Mobile Actions */}
         <div className="flex items-center gap-1 sm:gap-2">
           <button aria-label="Search" className="text-[#243234] hover:text-[#23484A] p-2 min-w-[40px] flex items-center justify-center">
             <Search className="w-5 h-5 stroke-[1.75]" />
           </button>
-          <Link href="/account/wishlist" aria-label="Wishlist" className="relative text-[#243234] hover:text-[#23484A] p-2 min-w-[40px] flex items-center justify-center">
-            <Heart className="w-5 h-5 stroke-[1.75]" />
+          <Link href="/account" aria-label="Wishlist" className="relative text-[#243234] hover:text-[#23484A] p-2 min-w-[40px] flex items-center justify-center">
+            <Heart className={`w-5 h-5 stroke-[1.75] ${wishlistCount > 0 ? 'fill-[#C7A66A] text-[#C7A66A]' : ''}`} />
             {wishlistCount > 0 && (
               <span className="absolute top-0.5 right-0.5 bg-[#C7A66A] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-2xs">
                 {wishlistCount}

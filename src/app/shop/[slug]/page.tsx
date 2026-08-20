@@ -101,7 +101,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
       <Header />
 
       <main className="flex-1 section-padding">
-        <div className="container-main space-y-12">
+        <div className="container-main space-y-6 sm:space-y-8">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-xs text-[#6F7775]">
             <Link href="/" className="hover:text-[#23484A]">Home</Link>
