@@ -34,7 +34,7 @@ export default function InstagramShowcase() {
       id: 4,
       image: '/images/products/product-4.jpg',
       likes: '2.1k',
-      caption: 'Sharara Set for festive celebrations • Worldwide shipping 🌍',
+      caption: 'Sharara Set for festive celebrations • All India shipping 🚚',
     },
     {
       id: 5,

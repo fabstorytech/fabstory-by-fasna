@@ -50,7 +50,7 @@ export default function Footer() {
             </Link>
 
             <p className="text-xs text-[#6F7775] max-w-sm leading-relaxed">
-              Where Style Meets Your Story • Specially curated for Women. Tailored with Love & Detail. Based in Kerala, shipping worldwide.
+              {BRAND.description}
             </p>
 
             {/* Official Instagram Handle Badge */}

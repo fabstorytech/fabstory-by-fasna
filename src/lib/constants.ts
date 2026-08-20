@@ -19,7 +19,7 @@ export const BRAND = {
   tagline: 'Sewing fabulous stories',
   fullName: 'Fabstory by Fasna',
   description:
-    'Where Style Meets Your Story • Specially curated for Women. Tailored with Love & Detail. Based in Kerala, shipping worldwide.',
+    'Where Style Meets Your Story • Specially curated for Women. Tailored with Love & Detail. Based in Kerala, shipping all over India.',
   email: 'hello@fabstorybyfasna.com',
   phone: '+91 12345 67890',
   location: 'Based in Kerala, India',
@@ -29,7 +29,7 @@ export const BRAND = {
   bioHighlights: [
     '✨ Specially curated for Women',
     '📍 Based in Kerala',
-    '📥 DM to order • 🌍 Worldwide Shipping',
+    '📥 DM to order • 🚚 All India Shipping',
     '🧵 Tailored with Love & Detail',
   ],
   facebook: 'https://facebook.com/fabstorybyfasna',
@@ -179,7 +179,7 @@ export const BRAND_PROMISES = [
   },
   {
     icon: 'shipping' as const,
-    title: 'Worldwide',
+    title: 'All India',
     subtitle: 'Shipping',
   },
 ] as const;
