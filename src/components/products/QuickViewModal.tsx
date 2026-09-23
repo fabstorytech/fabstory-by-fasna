@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, Star, Heart, ShoppingBag, Check } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { X, Star, Heart, ShoppingBag, Check, Sparkles } from 'lucide-react';
 import type { Product } from '@/types';
 import { formatPrice } from '@/lib/utils';
+import { addToCart } from '@/lib/cart';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -22,6 +24,7 @@ export default function QuickViewModal({
   isWishlisted = false,
   onToggleWishlist,
 }: QuickViewModalProps) {
+  const router = useRouter();
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [selectedSize, setSelectedSize] = useState('M');
   const [selectedFabric, setSelectedFabric] = useState('Premium Cotton');
@@ -42,8 +45,35 @@ export default function QuickViewModal({
     : [{ id: 'f1', fabricId: '1', name: 'Premium Cotton', additionalPrice: 0 }];
 
   const handleAddToCart = () => {
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      fabric: selectedFabric,
+      size: selectedSize,
+      customSize: selectedSize === 'Custom',
+      price: product.price,
+      quantity: 1,
+      image: images[0]?.url || '/images/placeholder.jpg',
+    });
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);
+  };
+
+  const handleBuyNow = () => {
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      slug: product.slug,
+      fabric: selectedFabric,
+      size: selectedSize,
+      customSize: selectedSize === 'Custom',
+      price: product.price,
+      quantity: 1,
+      image: images[0]?.url || '/images/placeholder.jpg',
+    });
+    onClose();
+    router.push('/checkout');
   };
 
   return (
@@ -141,11 +171,12 @@ export default function QuickViewModal({
           </div>
 
           {/* Action Buttons */}
-          <div className="space-y-2 pt-4 border-t border-[#E5E0D8]">
+          <div className="space-y-2 pt-3 border-t border-[#E5E0D8]">
             <div className="flex gap-2">
               <button
+                type="button"
                 onClick={handleAddToCart}
-                className="flex-1 bg-[#23484A] hover:bg-[#1A3536] text-white py-2.5 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors"
+                className="flex-1 bg-[#23484A] hover:bg-[#1A3536] text-white py-2.5 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 {addedToCart ? (
                   <>
@@ -160,10 +191,19 @@ export default function QuickViewModal({
                 )}
               </button>
 
+              <button
+                type="button"
+                onClick={handleBuyNow}
+                className="flex-1 border border-[#23484A] text-[#23484A] hover:bg-[#23484A] hover:text-white py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Buy Now
+              </button>
+
               {onToggleWishlist && (
                 <button
+                  type="button"
                   onClick={() => onToggleWishlist(product)}
-                  className={`p-2.5 border rounded-2xs transition-colors ${
+                  className={`p-2.5 border rounded-2xs transition-colors cursor-pointer ${
                     isWishlisted
                       ? 'border-red-500 bg-red-50 text-red-600'
                       : 'border-[#E5E0D8] text-[#243234] hover:bg-[#F8F5EF]'
@@ -178,9 +218,10 @@ export default function QuickViewModal({
             <Link
               href={`/shop/${product.slug}`}
               onClick={onClose}
-              className="block w-full text-center text-xs font-semibold text-[#23484A] hover:underline pt-1"
+              className="w-full bg-[#C7A66A] hover:bg-[#b08e54] text-white text-xs font-semibold py-2.5 uppercase tracking-wider rounded-2xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
             >
-              View Full Product Details →
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Customize Your Order</span>
             </Link>
           </div>
         </div>
