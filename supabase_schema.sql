@@ -129,3 +129,26 @@ ON CONFLICT (id) DO NOTHING;
 
 CREATE POLICY "Allow public storage upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'fabstory-assets');
 CREATE POLICY "Allow public storage select" ON storage.objects FOR SELECT USING (bucket_id = 'fabstory-assets');
+
+-- ============================================================
+-- 7. AUTO-CONFIRM USERS (DISABLE "Email Not Confirmed" REQUIREMENT)
+-- Run this in your Supabase SQL Editor to instantly confirm all users:
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.auto_confirm_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.email_confirmed_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    BEFORE INSERT ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION public.auto_confirm_user();
+
+-- Automatically confirm any existing unconfirmed users (e.g. unaiskaku@gmail.com)
+UPDATE auth.users
+SET email_confirmed_at = NOW()
+WHERE email_confirmed_at IS NULL;

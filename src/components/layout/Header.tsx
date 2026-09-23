@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { Search, User, Heart, ShoppingBag, Menu, ChevronDown } from 'lucide-react';
+import { Search, User, Heart, ShoppingBag, Menu, ChevronDown, Check } from 'lucide-react';
 import { NAV_ITEMS, BRAND } from '@/lib/constants';
+import { getCart } from '@/lib/cart';
+import { supabase } from '@/lib/supabase/client';
 import MobileNav from './MobileNav';
 
 interface HeaderProps {
@@ -12,11 +15,15 @@ interface HeaderProps {
   wishlistCount?: number;
 }
 
-export default function Header({ cartCount = 2, wishlistCount: initialWishlistCount }: HeaderProps) {
+export default function Header({ cartCount: initialCartCount, wishlistCount: initialWishlistCount }: HeaderProps) {
+  const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [wishlistCount, setWishlistCount] = useState(initialWishlistCount || 0);
+  const [cartCount, setCartCount] = useState(initialCartCount ?? 0);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,13 +48,47 @@ export default function Header({ cartCount = 2, wishlistCount: initialWishlistCo
       }
     };
 
+    const updateCartFromStorage = () => {
+      try {
+        const items = getCart();
+        setCartCount(items.reduce((sum, item) => sum + item.quantity, 0));
+      } catch {
+        setCartCount(0);
+      }
+    };
+
+    // Check Supabase session (single check, no excessive tokens)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setIsLoggedIn(true);
+        setUserName(session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Account');
+      } else {
+        setIsLoggedIn(false);
+        setUserName(null);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setIsLoggedIn(true);
+        setUserName(session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Account');
+      } else {
+        setIsLoggedIn(false);
+        setUserName(null);
+      }
+    });
+
     updateWishlistFromStorage();
+    updateCartFromStorage();
 
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('wishlist-updated', updateWishlistFromStorage);
+    window.addEventListener('cart-updated', updateCartFromStorage);
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('wishlist-updated', updateWishlistFromStorage);
+      window.removeEventListener('cart-updated', updateCartFromStorage);
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -84,41 +125,48 @@ export default function Header({ cartCount = 2, wishlistCount: initialWishlistCo
 
           {/* Desktop Navigation Links */}
           <nav className="flex items-center justify-center gap-6 xl:gap-8 mx-auto px-4">
-            {NAV_ITEMS.map((item) => (
-              <div
-                key={item.label}
-                className="relative py-2"
-                onMouseEnter={() => item.children && setActiveDropdown(item.label)}
-                onMouseLeave={() => setActiveDropdown(null)}
-              >
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-1 text-xs xl:text-[13px] font-bold uppercase tracking-[0.16em] transition-colors py-1 relative ${
-                    item.label === 'HOME'
-                      ? 'text-[#23484A] border-b-2 border-[#23484A]'
-                      : 'text-[#243234] hover:text-[#23484A]'
-                  }`}
-                >
-                  {item.label}
-                  {item.children && <ChevronDown className="w-3 h-3 text-[#718887]" />}
-                </Link>
+            {NAV_ITEMS.map((item) => {
+              const isActive =
+                item.href === '/'
+                  ? pathname === '/'
+                  : pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 
-                {/* Dropdown Menu */}
-                {item.children && activeDropdown === item.label && (
-                  <div className="absolute top-full left-0 w-48 bg-white border border-[#E5E0D8] shadow-lg py-2 rounded-xs z-50 animate-fade-in">
-                    {item.children.map((sub) => (
-                      <Link
-                        key={sub.label}
-                        href={sub.href}
-                        className="block px-4 py-2 text-xs text-[#243234] hover:bg-[#F8F5EF] hover:text-[#23484A] transition-colors"
-                      >
-                        {sub.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+              return (
+                <div
+                  key={item.label}
+                  className="relative py-2"
+                  onMouseEnter={() => item.children && setActiveDropdown(item.label)}
+                  onMouseLeave={() => setActiveDropdown(null)}
+                >
+                  <Link
+                    href={item.href}
+                    className={`flex items-center gap-1 text-xs xl:text-[13px] font-bold uppercase tracking-[0.16em] transition-colors py-1 relative border-b-2 ${
+                      isActive
+                        ? 'text-[#23484A] border-[#23484A]'
+                        : 'text-[#243234] hover:text-[#23484A] border-transparent'
+                    }`}
+                  >
+                    {item.label}
+                    {item.children && <ChevronDown className="w-3 h-3 text-[#718887]" />}
+                  </Link>
+
+                  {/* Dropdown Menu */}
+                  {item.children && activeDropdown === item.label && (
+                    <div className="absolute top-full left-0 w-48 bg-white border border-[#E5E0D8] shadow-lg py-2 rounded-xs z-50 animate-fade-in">
+                      {item.children.map((sub) => (
+                        <Link
+                          key={sub.label}
+                          href={sub.href}
+                          className="block px-4 py-2 text-xs text-[#243234] hover:bg-[#F8F5EF] hover:text-[#23484A] transition-colors"
+                        >
+                          {sub.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
 
           {/* Right Action Icons */}
@@ -131,11 +179,22 @@ export default function Header({ cartCount = 2, wishlistCount: initialWishlistCo
             </button>
 
             <Link
-              href="/account/login"
-              aria-label="Account Login"
-              className="hidden sm:block text-[#243234] hover:text-[#23484A] transition-colors p-1"
+              href={isLoggedIn ? '/account' : '/account/login'}
+              aria-label={isLoggedIn ? `Account (${userName || 'Logged in'})` : 'Account Login'}
+              className="hidden sm:flex items-center gap-1.5 text-[#243234] hover:text-[#23484A] transition-colors p-1 group"
+              title={isLoggedIn ? `Logged in as ${userName}` : 'Sign In / Account'}
             >
-              <User className="w-5 h-5 stroke-[1.75]" />
+              <div className="relative">
+                <User className="w-5 h-5 stroke-[1.75]" />
+                {isLoggedIn && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full border border-white" />
+                )}
+              </div>
+              {isLoggedIn && userName && (
+                <span className="text-[11px] font-medium text-[#23484A] max-w-[80px] truncate hidden xl:inline-block">
+                  {userName}
+                </span>
+              )}
             </Link>
 
             <Link

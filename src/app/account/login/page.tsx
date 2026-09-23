@@ -14,6 +14,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { getSiteSettings, SiteSettings } from '@/lib/supabase/services';
+import { supabase } from '@/lib/supabase/client';
 import { BRAND } from '@/lib/constants';
 
 function GoldOrnament({ className = 'w-24 h-5' }: { className?: string }) {
@@ -87,7 +88,44 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [canResendEmail, setCanResendEmail] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const handleResendEmail = async () => {
+    let cleanId = identifier.trim().toLowerCase();
+    if (!cleanId.includes('@')) {
+      const digits = cleanId.replace(/\D/g, '');
+      if (digits.length >= 10) {
+        cleanId = `${digits.slice(-10)}@fabstory.in`;
+      }
+    }
+    if (!cleanId) {
+      setMessage({ type: 'error', text: 'Please enter your email above to resend verification.' });
+      return;
+    }
+
+    setIsResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: cleanId,
+      });
+
+      if (error) {
+        setMessage({ type: 'error', text: error.message });
+      } else {
+        setMessage({
+          type: 'success',
+          text: `Verification link sent to ${cleanId}! Please check your email inbox and spam folder.`,
+        });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err?.message || 'Could not resend email.' });
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   // Dynamic Site Settings for Login CMS
   const [settings, setSettings] = useState<SiteSettings>({
@@ -102,40 +140,159 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
+    // Check if user is already logged in, redirect to account if so
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        router.replace('/account');
+      }
+    });
+
     getSiteSettings().then((data) => {
       if (data) {
         setSettings(data);
       }
     });
-  }, []);
+  }, [router]);
 
   const loginImage = settings.loginImage || '/images/craftsmanship.jpg';
   const loginTitle = settings.loginTitle || 'Where Style\nMeets Your Story';
   const loginSubtitle = settings.loginSubtitle || 'FABSTORY BY FASNA';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!identifier.trim()) {
+    const cleanId = identifier.trim();
+    if (!cleanId) {
       setMessage({ type: 'error', text: 'Please enter your email or mobile number.' });
       return;
+    }
+
+    if (!password) {
+      setMessage({ type: 'error', text: 'Please enter your password.' });
+      return;
+    }
+
+    if (password.length < 6) {
+      setMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
+      return;
+    }
+
+    // Normalize identifier: Email or 10-digit Indian Mobile Number
+    let normalizedEmail = cleanId.toLowerCase();
+    if (!cleanId.includes('@')) {
+      const digits = cleanId.replace(/\D/g, '');
+      if (digits.length >= 10) {
+        normalizedEmail = `${digits.slice(-10)}@fabstory.in`;
+      } else {
+        setMessage({ type: 'error', text: 'Please enter a valid 10-digit mobile number or email.' });
+        return;
+      }
     }
 
     setIsSubmitting(true);
     setMessage(null);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      if (mode === 'login') {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+
+        if (error) {
+          const isEmailNotConfirmed = error.message.toLowerCase().includes('email not confirmed');
+          if (isEmailNotConfirmed) {
+            setCanResendEmail(true);
+            setMessage({
+              type: 'error',
+              text: 'Email not confirmed yet. Supabase sent a verification link to your inbox. Please verify your email or click resend below.',
+            });
+          } else {
+            setMessage({
+              type: 'error',
+              text:
+                error.message.includes('Invalid login credentials')
+                  ? 'Invalid credentials. Please verify your email/mobile and password.'
+                  : error.message,
+            });
+          }
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (data?.session) {
+          setFullName('');
+          setIdentifier('');
+          setPassword('');
+          setShowPassword(false);
+          setMessage({
+            type: 'success',
+            text: 'Signed in successfully! Redirecting...',
+          });
+          setTimeout(() => {
+            router.push('/account');
+          }, 700);
+        }
+      } else {
+        // Sign Up Mode
+        if (!fullName.trim()) {
+          setMessage({ type: 'error', text: 'Please enter your full name.' });
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Save minimal lightweight user metadata to consume minimal Supabase tokens & storage
+        const { data, error } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+          options: {
+            data: {
+              full_name: fullName.trim(),
+            },
+          },
+        });
+
+        if (error) {
+          setMessage({
+            type: 'error',
+            text: error.message || 'Could not create account. Please try again.',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Immediately clear all input fields from form
+        setFullName('');
+        setIdentifier('');
+        setPassword('');
+        setShowPassword(false);
+
+        if (data?.session) {
+          setMessage({
+            type: 'success',
+            text: 'Account created successfully! Welcome to Fabstory.',
+          });
+          setTimeout(() => {
+            router.push('/account');
+          }, 800);
+        } else if (data?.user) {
+          // If Supabase has email confirmation enabled
+          setCanResendEmail(true);
+          setMessage({
+            type: 'success',
+            text: 'Account created! Please check your email inbox to confirm your account before signing in.',
+          });
+          setMode('login');
+        }
+      }
+    } catch (err: any) {
+      console.error('Supabase auth error:', err);
       setMessage({
-        type: 'success',
-        text:
-          mode === 'login'
-            ? 'Signed in successfully! Redirecting...'
-            : 'Account created successfully! Welcome to Fabstory.',
+        type: 'error',
+        text: err?.message || 'Authentication error. Please try again.',
       });
-      setTimeout(() => {
-        router.push('/account');
-      }, 1000);
-    }, 800);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -301,6 +458,23 @@ export default function LoginPage() {
             </div>
           )}
 
+          {/* Resend Confirmation Email Option */}
+          {canResendEmail && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-900 space-y-2">
+              <p className="leading-relaxed">
+                Check your inbox (and spam folder) for the verification email.
+              </p>
+              <button
+                type="button"
+                onClick={handleResendEmail}
+                disabled={isResending}
+                className="font-bold text-[#1C3F3A] hover:underline cursor-pointer disabled:opacity-50 block"
+              >
+                {isResending ? 'Resending verification email...' : '✉ Click here to resend verification email'}
+              </button>
+            </div>
+          )}
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4 max-w-[340px] w-full mx-auto">
             {/* Full Name (Sign Up mode only) */}
@@ -341,41 +515,51 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password Field (Sign Up mode) */}
-            {mode === 'signup' && (
-              <div className="space-y-1.5 text-left">
+            {/* Password Field (Both Sign In and Sign Up modes) */}
+            <div className="space-y-1.5 text-left">
+              <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-[#243234] block">
-                  Create Password
+                  {mode === 'signup' ? 'Create Password' : 'Password'}
                 </label>
-                <div className="relative flex items-center">
-                  <Lock className="w-4 h-4 text-[#8C9B9A] absolute left-3.5" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="At least 6 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required={mode === 'signup'}
-                    minLength={6}
-                    className="w-full border border-[#D9D3C8] rounded-md pl-10 pr-10 py-3 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1C3F3A] focus:ring-1 focus:ring-[#1C3F3A] placeholder:text-[#A0A8A6] text-[#1C3F3A] transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 text-[#8C9B9A] hover:text-[#1C3F3A]"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+                {mode === 'login' && (
+                  <span className="text-[11px] text-[#8C9B9A]">Min. 6 characters</span>
+                )}
               </div>
-            )}
+              <div className="relative flex items-center">
+                <Lock className="w-4 h-4 text-[#8C9B9A] absolute left-3.5" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder={mode === 'signup' ? 'At least 6 characters' : 'Enter your password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full border border-[#D9D3C8] rounded-md pl-10 pr-10 py-3 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1C3F3A] focus:ring-1 focus:ring-[#1C3F3A] placeholder:text-[#A0A8A6] text-[#1C3F3A] transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 text-[#8C9B9A] hover:text-[#1C3F3A] cursor-pointer"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
 
-            {/* Primary Action Button: CONTINUE */}
+            {/* Primary Action Button: SIGN IN / CREATE ACCOUNT */}
             <button
               type="submit"
               disabled={isSubmitting}
               className="w-full bg-[#1C3F3A] hover:bg-[#14302C] text-white font-semibold text-xs tracking-[0.14em] uppercase py-3.5 rounded-md transition-all mt-2 shadow-sm active:scale-[0.99] cursor-pointer disabled:opacity-75"
             >
-              {isSubmitting ? 'PLEASE WAIT...' : 'CONTINUE'}
+              {isSubmitting
+                ? mode === 'login'
+                  ? 'SIGNING IN...'
+                  : 'CREATING ACCOUNT...'
+                : mode === 'login'
+                ? 'SIGN IN'
+                : 'CREATE ACCOUNT'}
             </button>
 
             {/* Bottom Toggle Link */}
