@@ -1,55 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { formatPrice } from '@/lib/utils';
 import { Minus, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { getCart, updateCartQuantity, removeFromCart, CartItem } from '@/lib/cart';
 
 export default function CartPage() {
-  const [items, setItems] = useState([
-    {
-      id: 'cart-1',
-      name: 'Floral Anarkali',
-      fabric: 'Premium Cotton',
-      size: 'M',
-      customSize: true,
-      price: 3999,
-      quantity: 1,
-      image: '/images/products/product-1.jpg',
-    },
-    {
-      id: 'cart-2',
-      name: 'Embroidered Abaya',
-      fabric: 'Linen',
-      size: 'L',
-      customSize: false,
-      price: 2999,
-      quantity: 1,
-      image: '/images/products/product-2.jpg',
-    },
-  ]);
+  const [items, setItems] = useState<CartItem[]>([]);
+  const [mounted, setMounted] = useState(false);
 
-  const updateQuantity = (id: string, delta: number) => {
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.id === id) {
-          const newQty = Math.max(1, item.quantity + delta);
-          return { ...item, quantity: newQty };
-        }
-        return item;
-      })
-    );
+  const loadCart = () => {
+    const cart = getCart();
+    setItems(cart);
   };
 
-  const removeItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+  useEffect(() => {
+    setMounted(true);
+    loadCart();
+    window.addEventListener('cart-updated', loadCart);
+    return () => window.removeEventListener('cart-updated', loadCart);
+  }, []);
+
+  const handleUpdateQuantity = (id: string, delta: number) => {
+    updateCartQuantity(id, delta);
+    loadCart();
+  };
+
+  const handleRemoveItem = (id: string) => {
+    removeFromCart(id);
+    loadCart();
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shipping = 200;
+  const shipping = items.length > 0 ? 200 : 0;
   const total = subtotal + shipping;
 
   return (
@@ -64,7 +51,7 @@ export default function CartPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Items List */}
-            <div className="lg:col-span-8 bg-white p-6 border border-[#E5E0D8] space-y-6">
+            <div className="lg:col-span-8 bg-white p-4 sm:p-6 border border-[#E5E0D8] space-y-6">
               {items.length === 0 ? (
                 <div className="py-12 text-center space-y-4">
                   <p className="text-sm text-[#6F7775]">Your shopping cart is currently empty.</p>
@@ -75,13 +62,13 @@ export default function CartPage() {
               ) : (
                 <div className="divide-y divide-[#E5E0D8]">
                   {items.map((item) => (
-                    <div key={item.id} className="py-4 first:pt-0 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="relative w-20 h-24 bg-[#F8F5EF] border border-[#E5E0D8] overflow-hidden shrink-0">
+                    <div key={item.id} className="py-4 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                        <div className="relative w-16 h-20 sm:w-20 sm:h-24 bg-[#F8F5EF] border border-[#E5E0D8] overflow-hidden shrink-0">
                           <Image src={item.image} alt={item.name} fill className="object-cover" />
                         </div>
-                        <div className="space-y-1">
-                          <h3 className="font-serif text-base font-semibold text-[#243234]">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <h3 className="font-serif text-sm sm:text-base font-semibold text-[#243234] truncate">
                             {item.name}
                           </h3>
                           <p className="text-xs text-[#6F7775]">
@@ -96,11 +83,12 @@ export default function CartPage() {
                       </div>
 
                       {/* Quantity & Price */}
-                      <div className="flex items-center gap-6">
-                        <div className="flex items-center border border-[#E5E0D8] bg-white">
+                      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 w-full sm:w-auto pt-2 sm:pt-0 border-t border-[#E5E0D8]/60 sm:border-t-0">
+                        <div className="flex items-center border border-[#E5E0D8] bg-white shrink-0">
                           <button
-                            onClick={() => updateQuantity(item.id, -1)}
+                            onClick={() => handleUpdateQuantity(item.id, -1)}
                             className="p-1.5 text-[#243234] hover:bg-[#F8F5EF]"
+                            aria-label="Decrease quantity"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
@@ -108,21 +96,22 @@ export default function CartPage() {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => updateQuantity(item.id, 1)}
+                            onClick={() => handleUpdateQuantity(item.id, 1)}
                             className="p-1.5 text-[#243234] hover:bg-[#F8F5EF]"
+                            aria-label="Increase quantity"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
 
-                        <span className="text-sm font-semibold text-[#23484A] min-w-[80px] text-right">
+                        <span className="text-sm font-semibold text-[#23484A] text-right shrink-0">
                           {formatPrice(item.price * item.quantity)}
                         </span>
 
                         <button
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => handleRemoveItem(item.id)}
                           aria-label="Remove item"
-                          className="text-[#6F7775] hover:text-[#B85450] p-1"
+                          className="text-[#6F7775] hover:text-[#B85450] p-1 shrink-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

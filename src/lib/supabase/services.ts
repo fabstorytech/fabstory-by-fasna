@@ -7,6 +7,9 @@ export interface SiteSettings {
   heroMobileImage: string;
   heroTitle: string;
   heroSubtitle: string;
+  loginImage?: string;
+  loginTitle?: string;
+  loginSubtitle?: string;
 }
 
 // ============================================================
@@ -44,9 +47,12 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   const defaultSettings: SiteSettings = {
     id: 'default',
     heroDesktopImage: '/images/hero-latest.jpg',
-    heroMobileImage: '/images/mobileview/fabstore-mobilebanner.png',
+    heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
     heroTitle: 'Where Style Meets Your Story',
     heroSubtitle: 'Specially curated for Women',
+    loginImage: '/images/craftsmanship.jpg',
+    loginTitle: 'Where Style\nMeets Your Story',
+    loginSubtitle: 'FABSTORY BY FASNA',
   };
 
   try {
@@ -66,6 +72,9 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       heroMobileImage: data.hero_mobile_image || defaultSettings.heroMobileImage,
       heroTitle: data.hero_title || defaultSettings.heroTitle,
       heroSubtitle: data.hero_subtitle || defaultSettings.heroSubtitle,
+      loginImage: data.login_image || defaultSettings.loginImage,
+      loginTitle: data.login_title || defaultSettings.loginTitle,
+      loginSubtitle: data.login_subtitle || defaultSettings.loginSubtitle,
     };
   } catch (err) {
     return defaultSettings;
@@ -74,7 +83,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
 export async function updateSiteSettings(settings: Partial<SiteSettings>): Promise<boolean> {
   try {
-    const payload = {
+    const payload: any = {
       id: 'default',
       hero_desktop_image: settings.heroDesktopImage,
       hero_mobile_image: settings.heroMobileImage,
@@ -82,6 +91,10 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>): Promi
       hero_subtitle: settings.heroSubtitle,
       updated_at: new Date().toISOString(),
     };
+
+    if (settings.loginImage !== undefined) payload.login_image = settings.loginImage;
+    if (settings.loginTitle !== undefined) payload.login_title = settings.loginTitle;
+    if (settings.loginSubtitle !== undefined) payload.login_subtitle = settings.loginSubtitle;
 
     const { error } = await supabase.from('site_settings').upsert([payload]);
     return !error;

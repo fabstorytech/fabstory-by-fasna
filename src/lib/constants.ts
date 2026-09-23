@@ -19,9 +19,9 @@ export const BRAND = {
   tagline: 'Sewing fabulous stories',
   fullName: 'Fabstory by Fasna',
   description:
-    'Where Style Meets Your Story • Specially curated for Women. Tailored with Love & Detail. Based in Kerala, shipping worldwide.',
+    'Where Style Meets Your Story • Specially curated for Women. Tailored with Love & Detail. Based in Kerala, shipping all over India.',
   email: 'hello@fabstorybyfasna.com',
-  phone: '+91 12345 67890',
+  phone: '+91 96562 76402',
   location: 'Based in Kerala, India',
   instagram: 'https://www.instagram.com/fabstory_by_fasna',
   instagramHandle: '@fabstory_by_fasna',
@@ -29,14 +29,36 @@ export const BRAND = {
   bioHighlights: [
     '✨ Specially curated for Women',
     '📍 Based in Kerala',
-    '📥 DM to order • 🌍 Worldwide Shipping',
+    '📥 DM to order • 🚚 All India Shipping',
     '🧵 Tailored with Love & Detail',
   ],
   facebook: 'https://facebook.com/fabstorybyfasna',
   pinterest: 'https://pinterest.com/fabstorybyfasna',
   youtube: 'https://youtube.com/@fabstorybyfasna',
-  whatsapp: 'https://wa.me/911234567890',
+  whatsapp: 'https://wa.me/919656276402',
+  whatsappNumber: '919656276402',
+  whatsappDisplay: '+91 96562 76402',
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://fabstorybyfasna.com',
 } as const;
+
+/**
+ * Production website origin from project configuration / environment.
+ * Matches canonical metadataBase in layout.tsx ('https://fabstorybyfasna.com').
+ */
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  BRAND.siteUrl;
+
+/**
+ * Returns the absolute customer-facing product detail page URL using the configured production domain.
+ * Reuses the application's exact product route (/shop/[slug]) and never produces localhost URLs.
+ */
+export function getProductPageUrl(slug: string): string {
+  const cleanBase = SITE_URL.replace(/\/+$/, '');
+  const cleanSlug = (slug || '').replace(/^\/+/, '');
+  return `${cleanBase}/shop/${cleanSlug}`;
+}
 
 // --- Navigation ---
 
@@ -179,7 +201,7 @@ export const BRAND_PROMISES = [
   },
   {
     icon: 'shipping' as const,
-    title: 'Worldwide',
+    title: 'All India',
     subtitle: 'Shipping',
   },
 ] as const;

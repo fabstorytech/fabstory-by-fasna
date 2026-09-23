@@ -9,7 +9,7 @@ export default function Hero() {
   const [settings, setSettings] = useState<SiteSettings>({
     id: 'default',
     heroDesktopImage: '/images/hero-latest.jpg',
-    heroMobileImage: '/images/mobileview/fabstore-mobilebanner.png',
+    heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
     heroTitle: 'Where Style Meets Your Story',
     heroSubtitle: 'Specially curated for Women',
   });
@@ -26,9 +26,12 @@ export default function Hero() {
 
   const desktopImg1 = settings.heroDesktopImage || '/images/hero-latest.jpg';
   const mobileImg1 =
-    settings.heroMobileImage && settings.heroMobileImage !== '/images/hero-mobile.jpg'
+    settings.heroMobileImage &&
+    settings.heroMobileImage !== '/images/hero-mobile.jpg' &&
+    settings.heroMobileImage !== '/images/mobileview/fabstore-mobilebanner.png'
       ? settings.heroMobileImage
       : '/images/mobileview/fabstore-mobilebanner1.png';
+
   const mobileImg2 = '/images/mobileview/fabstore-mobilebanner2.png';
   const mobileImg3 = '/images/mobileview/fabstore-mobileview3.png';
   const title1 = settings.heroTitle || 'Where Style Meets Your Story';
@@ -90,8 +93,9 @@ export default function Hero() {
         {slides.map((slide, idx) => (
           <div
             key={slide.id}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${currentSlide === idx ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-              }`}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              currentSlide === idx ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+            }`}
           >
             {/* Desktop Banner Image */}
             <div className="hidden sm:block absolute inset-0">
@@ -156,7 +160,6 @@ export default function Hero() {
                 {slides[currentSlide].secondaryCta.text}
               </Link>
             </div>
-
           </div>
         </div>
       </div>

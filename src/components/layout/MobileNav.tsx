@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { X, ChevronDown, MessageCircle } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
@@ -12,6 +13,7 @@ interface MobileNavProps {
 }
 
 export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
+  const pathname = usePathname();
   const [shopOpen, setShopOpen] = useState(false);
 
   if (!isOpen) return null;
@@ -57,7 +59,11 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
               <Link
                 href="/"
                 onClick={onClose}
-                className="block hover:text-[#23484A] transition-colors py-1"
+                className={`block transition-colors py-1 ${
+                  pathname === '/'
+                    ? 'text-[#23484A] font-semibold'
+                    : 'text-[#243234] hover:text-[#23484A]'
+                }`}
               >
                 Home
               </Link>
@@ -67,7 +73,11 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
             <li className="border-b border-t border-[#E5E0D8]/60 py-2">
               <button
                 onClick={() => setShopOpen(!shopOpen)}
-                className="w-full flex items-center justify-between font-serif text-lg text-[#243234] hover:text-[#23484A]"
+                className={`w-full flex items-center justify-between font-serif text-lg transition-colors ${
+                  pathname.startsWith('/shop') || pathname === '/custom-made' || pathname === '/fabrics'
+                    ? 'text-[#23484A] font-semibold'
+                    : 'text-[#243234] hover:text-[#23484A]'
+                }`}
               >
                 <span>Shop</span>
                 <ChevronDown
@@ -92,7 +102,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                     <Link
                       href="/custom-made"
                       onClick={onClose}
-                      className="block hover:text-[#23484A]"
+                      className={`block ${pathname === '/custom-made' ? 'text-[#23484A] font-semibold' : 'hover:text-[#23484A]'}`}
                     >
                       Custom Made
                     </Link>
@@ -101,7 +111,7 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
                     <Link
                       href="/fabrics"
                       onClick={onClose}
-                      className="block hover:text-[#23484A]"
+                      className={`block ${pathname.startsWith('/fabrics') ? 'text-[#23484A] font-semibold' : 'hover:text-[#23484A]'}`}
                     >
                       Fabrics
                     </Link>
@@ -114,7 +124,11 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
               <Link
                 href="/shop"
                 onClick={onClose}
-                className="block hover:text-[#23484A] transition-colors py-1"
+                className={`block transition-colors py-1 ${
+                  pathname === '/shop'
+                    ? 'text-[#23484A] font-semibold'
+                    : 'text-[#243234] hover:text-[#23484A]'
+                }`}
               >
                 Collections
               </Link>
@@ -124,7 +138,11 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
               <Link
                 href="/about"
                 onClick={onClose}
-                className="block hover:text-[#23484A] transition-colors py-1"
+                className={`block transition-colors py-1 ${
+                  pathname === '/about'
+                    ? 'text-[#23484A] font-semibold'
+                    : 'text-[#243234] hover:text-[#23484A]'
+                }`}
               >
                 About
               </Link>
@@ -134,9 +152,23 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
               <Link
                 href="/contact"
                 onClick={onClose}
-                className="block hover:text-[#23484A] transition-colors py-1"
+                className={`block transition-colors py-1 ${
+                  pathname === '/contact'
+                    ? 'text-[#23484A] font-semibold'
+                    : 'text-[#243234] hover:text-[#23484A]'
+                }`}
               >
                 Contact
+              </Link>
+            </li>
+
+            <li className="border-t border-[#E5E0D8]/60 pt-2">
+              <Link
+                href="/account"
+                onClick={onClose}
+                className="block hover:text-[#23484A] text-[#C7A66A] font-semibold transition-colors py-1"
+              >
+                My Account
               </Link>
             </li>
           </ul>

@@ -1,15 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { formatPrice } from '@/lib/utils';
 import { Lock, CreditCard, Smartphone } from 'lucide-react';
+import { getCart, CartItem, clearCart } from '@/lib/cart';
 
 export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card'>('upi');
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    setCartItems(getCart());
+  }, []);
+
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const shipping = cartItems.length > 0 ? 200 : 0;
+  const total = subtotal + shipping;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8F5EF]">
@@ -100,41 +110,60 @@ export default function CheckoutPage() {
 
               <Link
                 href="/order-success"
+                onClick={() => clearCart()}
                 className="w-full btn btn-primary bg-[#23484A] text-white py-4 text-xs font-semibold uppercase tracking-wider block text-center"
               >
-                PAY ₹ 7,198 & PLACE ORDER
+                PAY {formatPrice(total > 0 ? total : 7198)} & PLACE ORDER
               </Link>
             </div>
 
             {/* Right Summary */}
             <div className="lg:col-span-5 bg-white p-6 border border-[#E5E0D8] space-y-4">
               <h2 className="font-serif text-xl text-[#23484A] pb-3 border-b border-[#E5E0D8]">
-                Order Summary (2 Items)
+                Order Summary ({cartItems.length > 0 ? cartItems.length : 2} Items)
               </h2>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span>Floral Anarkali (Custom Size)</span>
-                  <span className="font-semibold text-[#23484A]">₹ 3,999</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span>Embroidered Abaya (L)</span>
-                  <span className="font-semibold text-[#23484A]">₹ 2,999</span>
-                </div>
+                {cartItems.length > 0 ? (
+                  cartItems.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-medium text-[#243234] block">{item.name}</span>
+                        <span className="text-[11px] text-[#6F7775]">
+                          {item.fabric} - {item.size} {item.quantity > 1 ? `(x${item.quantity})` : ''}
+                        </span>
+                      </div>
+                      <span className="font-semibold text-[#23484A]">
+                        {formatPrice(item.price * item.quantity)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between text-xs">
+                      <span>Floral Anarkali (Custom Size)</span>
+                      <span className="font-semibold text-[#23484A]">₹ 3,999</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span>Embroidered Abaya (L)</span>
+                      <span className="font-semibold text-[#23484A]">₹ 2,999</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="pt-4 border-t border-[#E5E0D8] space-y-2 text-xs text-[#6F7775]">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
-                  <span>₹ 6,998</span>
+                  <span>{formatPrice(subtotal > 0 ? subtotal : 6998)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span>₹ 200</span>
+                  <span>{formatPrice(shipping > 0 ? shipping : 200)}</span>
                 </div>
                 <div className="flex justify-between text-base font-bold text-[#23484A] pt-3 border-t border-[#E5E0D8]">
                   <span>Total Payable</span>
-                  <span>₹ 7,198</span>
+                  <span>{formatPrice(total > 0 ? total : 7198)}</span>
                 </div>
               </div>
             </div>
