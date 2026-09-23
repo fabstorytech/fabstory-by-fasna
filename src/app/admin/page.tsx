@@ -53,12 +53,16 @@ export default function AdminDashboardPage() {
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     id: 'default',
     heroDesktopImage: '/images/hero-latest.jpg',
-    heroMobileImage: '/images/hero-mobile.jpg',
+    heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
     heroTitle: 'Where Style Meets Your Story',
     heroSubtitle: 'Specially curated for Women',
+    loginImage: '/images/craftsmanship.jpg',
+    loginTitle: 'Where Style\nMeets Your Story',
+    loginSubtitle: 'FABSTORY BY FASNA',
   });
   const [desktopHeroFile, setDesktopHeroFile] = useState<File | null>(null);
   const [mobileHeroFile, setMobileHeroFile] = useState<File | null>(null);
+  const [loginHeroFile, setLoginHeroFile] = useState<File | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -111,6 +115,7 @@ export default function AdminDashboardPage() {
 
     let updatedDesktopUrl = siteSettings.heroDesktopImage;
     let updatedMobileUrl = siteSettings.heroMobileImage;
+    let updatedLoginUrl = siteSettings.loginImage;
 
     if (desktopHeroFile) {
       const url = await uploadImageToCloudinary(desktopHeroFile);
@@ -122,10 +127,16 @@ export default function AdminDashboardPage() {
       if (url) updatedMobileUrl = url;
     }
 
+    if (loginHeroFile) {
+      const url = await uploadImageToCloudinary(loginHeroFile);
+      if (url) updatedLoginUrl = url;
+    }
+
     const newSettings: SiteSettings = {
       ...siteSettings,
       heroDesktopImage: updatedDesktopUrl,
       heroMobileImage: updatedMobileUrl,
+      loginImage: updatedLoginUrl,
     };
 
     const ok = await updateSiteSettings(newSettings);
@@ -133,9 +144,10 @@ export default function AdminDashboardPage() {
 
     if (ok) {
       setSiteSettings(newSettings);
-      setSettingsMessage({ type: 'success', text: 'Hero artwork & store banner updated live on Cloudinary!' });
+      setSettingsMessage({ type: 'success', text: 'Hero & Login settings updated live on Cloudinary!' });
       setDesktopHeroFile(null);
       setMobileHeroFile(null);
+      setLoginHeroFile(null);
     } else {
       setSettingsMessage({ type: 'error', text: 'Failed to update site settings.' });
     }
@@ -686,7 +698,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center gap-4">
                   <div className="relative w-20 h-28 bg-white border border-[#E5E0D8] overflow-hidden rounded-2xs shrink-0">
                     <Image
-                      src={siteSettings.heroMobileImage || '/images/hero-mobile.jpg'}
+                      src={siteSettings.heroMobileImage || '/images/mobileview/fabstore-mobilebanner1.png'}
                       alt="Mobile Hero"
                       fill
                       className="object-cover object-top"
@@ -700,6 +712,58 @@ export default function AdminDashboardPage() {
                       className="w-full border border-[#E5E0D8] p-2 rounded-2xs bg-white text-xs"
                     />
                     <p className="text-[10px] text-[#6F7775]">Upload portrait mobile hero image.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Login Page CMS Section */}
+              <div className="pt-4 border-t border-[#E5E0D8] space-y-4">
+                <h3 className="font-serif text-lg text-[#23484A]">Customer Login Page Artwork & Heading</h3>
+                <p className="text-xs text-[#6F7775]">Customize the side banner image and typography on the Customer Login screen.</p>
+
+                <div className="space-y-2">
+                  <label className="block text-[#243234] font-semibold">Login Page Title</label>
+                  <input
+                    type="text"
+                    value={siteSettings.loginTitle || 'Where Style\nMeets Your Story'}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, loginTitle: e.target.value })}
+                    placeholder="Where Style Meets Your Story"
+                    className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[#243234] font-semibold">Login Page Subtitle</label>
+                  <input
+                    type="text"
+                    value={siteSettings.loginSubtitle || 'FABSTORY BY FASNA'}
+                    onChange={(e) => setSiteSettings({ ...siteSettings, loginSubtitle: e.target.value })}
+                    placeholder="FABSTORY BY FASNA"
+                    className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
+                  />
+                </div>
+
+                {/* Login Image Uploader */}
+                <div className="p-4 border border-[#E5E0D8] bg-[#F8F5EF] rounded-2xs space-y-3">
+                  <h4 className="font-semibold text-[#23484A] text-sm">Login Side Banner Image</h4>
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-20 h-28 bg-white border border-[#E5E0D8] overflow-hidden rounded-2xs shrink-0">
+                      <Image
+                        src={siteSettings.loginImage || '/images/craftsmanship.jpg'}
+                        alt="Login Artwork"
+                        fill
+                        className="object-cover object-top"
+                      />
+                    </div>
+                    <div className="space-y-2 flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setLoginHeroFile(e.target.files?.[0] || null)}
+                        className="w-full border border-[#E5E0D8] p-2 rounded-2xs bg-white text-xs"
+                      />
+                      <p className="text-[10px] text-[#6F7775]">Upload custom model photo or campaign banner for the login screen.</p>
+                    </div>
                   </div>
                 </div>
               </div>

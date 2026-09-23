@@ -178,6 +178,17 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-[#E5E0D8] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#6F7775]">
           <p>© {new Date().getFullYear()} Fabstory by Fasna. All rights reserved.</p>
+          <p className="text-[11px] text-[#6F7775]">
+            Crafted by{' '}
+            <a
+              href="https://ekodrix.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#23484A] font-semibold hover:text-[#C7A66A] transition-colors underline-offset-2 hover:underline"
+            >
+              Ekodrix
+            </a>
+          </p>
           <div className="flex items-center gap-3 text-[10px] font-bold text-[#718887]">
             <span className="px-2 py-1 bg-[#F8F5EF] border border-[#E5E0D8] rounded-xs">VISA</span>
             <span className="px-2 py-1 bg-[#F8F5EF] border border-[#E5E0D8] rounded-xs">MC</span>

@@ -131,8 +131,8 @@ export default function Header({ cartCount = 2, wishlistCount: initialWishlistCo
             </button>
 
             <Link
-              href="/account"
-              aria-label="Account"
+              href="/account/login"
+              aria-label="Account Login"
               className="hidden sm:block text-[#243234] hover:text-[#23484A] transition-colors p-1"
             >
               <User className="w-5 h-5 stroke-[1.75]" />
