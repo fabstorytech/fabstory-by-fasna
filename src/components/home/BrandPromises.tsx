@@ -35,7 +35,7 @@ export default function BrandPromises() {
                 key={idx}
                 className="flex items-center justify-start sm:justify-center gap-3.5 pb-3 md:pb-0 border-b md:border-b-0 border-[#E5E0D8] px-2 sm:px-3"
               >
-                <div className="w-10 h-10 rounded-full bg-white border border-[#C7A66A]/40 flex items-center justify-center text-[#23484A] shrink-0 shadow-2xs">
+                <div className="w-10 h-10 rounded-full bg-[#FAF8F5] border border-[#C7A66A]/40 flex items-center justify-center text-[#23484A] shrink-0 shadow-2xs">
                   <Icon className="w-4 h-4 stroke-[1.5]" />
                 </div>
                 <div>

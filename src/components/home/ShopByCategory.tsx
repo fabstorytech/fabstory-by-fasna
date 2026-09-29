@@ -19,7 +19,7 @@ export default function ShopByCategory() {
   }, []);
 
   return (
-    <section className="section-padding bg-white border-b border-[#E5E0D8]">
+    <section className="section-padding bg-[#F8F5EF] border-b border-[#E5E0D8]">
       <div className="container-main space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
@@ -33,7 +33,7 @@ export default function ShopByCategory() {
           </div>
           <Link
             href="/shop"
-            className="btn border border-[#23484A] text-[#23484A] text-xs font-semibold px-6 py-2 uppercase tracking-wider hover:bg-[#23484A] hover:text-white transition-colors"
+            className="btn border border-[#23484A] text-[#23484A] bg-[#FAF8F5] text-xs font-semibold px-6 py-2 uppercase tracking-wider hover:bg-[#23484A] hover:text-white transition-colors"
           >
             VIEW ALL
           </Link>
