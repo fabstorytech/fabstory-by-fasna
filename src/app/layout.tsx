@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, Cormorant_Garamond } from 'next/font/google';
+import type { ReactNode } from 'react';
 import './globals.css';
 
 const inter = Inter({
@@ -37,6 +38,20 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Fabstory by Fasna' }],
   creator: 'Fabstory by Fasna',
+  icons: {
+    icon: [
+      { url: '/logo.png', sizes: 'any' },
+      { url: '/logo.png', type: 'image/png', sizes: '48x48' },
+      { url: '/logo.png', type: 'image/png', sizes: '96x96' },
+      { url: '/logo.png', type: 'image/png', sizes: '192x192' },
+      { url: '/logo.png', type: 'image/png', sizes: '512x512' },
+    ],
+    shortcut: '/logo.png',
+    apple: [
+      { url: '/logo.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+  manifest: '/manifest.webmanifest',
   openGraph: {
     type: 'website',
     locale: 'en_IN',
@@ -47,7 +62,7 @@ export const metadata: Metadata = {
       'Premium handcrafted women\'s fashion. Custom-made outfits, ready-to-ship collections, and exquisite fabrics.',
     images: [
       {
-        url: '/og-image.jpg',
+        url: '/logo.png',
         width: 1200,
         height: 630,
         alt: 'Fabstory by Fasna',
@@ -59,6 +74,7 @@ export const metadata: Metadata = {
     title: 'Fabstory by Fasna — Sewing Fabulous Stories',
     description:
       'Premium handcrafted women\'s fashion. Custom-made outfits, ready-to-ship collections, and exquisite fabrics.',
+    images: ['/logo.png'],
   },
   robots: {
     index: true,
@@ -66,13 +82,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
       className={`${inter.variable} ${cormorant.variable} h-full antialiased`}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="icon" href="/logo.png" sizes="any" />
+        <link rel="icon" href="/logo.png" type="image/png" sizes="48x48" />
+        <link rel="icon" href="/logo.png" type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/logo.png" sizes="180x180" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <meta name="theme-color" content="#23484A" />
+      </head>
       <body
         className="min-h-full flex flex-col font-sans text-foreground bg-[#F8F5EF]"
         suppressHydrationWarning

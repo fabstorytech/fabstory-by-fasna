@@ -73,7 +73,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
 
   return (
     <>
-      <div className="group relative flex flex-col bg-white border border-[#E5E0D8]/60 hover:border-[#23484A]/30 transition-all duration-300">
+      <div className="group relative flex flex-col bg-[#FAF8F5] border border-[#E5E0D8] rounded-xs overflow-hidden hover:border-[#23484A]/40 transition-all duration-300 shadow-2xs">
         {/* Toast Notification */}
         {toastMessage && (
           <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 bg-[#23484A] text-white text-[10px] font-semibold px-3 py-1 rounded-full shadow-md animate-fade-in whitespace-nowrap">
@@ -107,7 +107,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
             type="button"
             onClick={handleEyeClick}
             aria-label="Quick View"
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-[#243234] hover:text-[#23484A] hover:bg-white transition-all shadow-xs"
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#FAF8F5]/95 border border-[#E5E0D8]/60 backdrop-blur-xs flex items-center justify-center text-[#243234] hover:text-[#23484A] hover:bg-white transition-all shadow-xs"
             title="Quick View"
           >
             <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[1.75]" />
@@ -118,10 +118,10 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
             type="button"
             onClick={handleToggleWishlist}
             aria-label="Add to wishlist"
-            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full backdrop-blur-xs flex items-center justify-center transition-all shadow-xs ${
+            className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border backdrop-blur-xs flex items-center justify-center transition-all shadow-xs ${
               isWishlisted
-                ? 'bg-red-50 text-red-600 border border-red-200'
-                : 'bg-white/90 text-[#243234] hover:text-[#23484A] hover:bg-white'
+                ? 'bg-red-50 text-red-600 border-red-200'
+                : 'bg-[#FAF8F5]/95 border-[#E5E0D8]/60 text-[#243234] hover:text-[#23484A] hover:bg-white'
             }`}
             title={isWishlisted ? 'Remove from Wishlist' : 'Save to Wishlist'}
           >
@@ -130,7 +130,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         </div>
 
         {/* Product Image */}
-        <Link href={`/shop/${product.slug}`} className="product-image-wrapper block aspect-[3/4] relative bg-[#F8F5EF] overflow-hidden">
+        <Link href={`/shop/${product.slug}`} className="product-image-wrapper block aspect-[3/4] relative bg-[#F2EDE4] overflow-hidden">
           <Image
             src={mainImage}
             alt={product.name}
@@ -141,7 +141,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         </Link>
 
         {/* Product Content — Pro UI/UX E-Commerce Layout */}
-        <div className="p-2.5 sm:p-3.5 flex flex-col flex-1 bg-white space-y-1.5 sm:space-y-2">
+        <div className="p-2.5 sm:p-3.5 flex flex-col flex-1 bg-[#FAF8F5] space-y-1.5 sm:space-y-2">
           {/* Muted Category Tag */}
           <span className="text-[10px] sm:text-xs text-[#6F7775] font-sans block">
             {product.type === 'CUSTOM' ? 'Custom Collection' : 'New Arrivals'}

@@ -498,6 +498,21 @@ textarea.input {
   animation: fadeUp var(--duration-slower) var(--ease-out);
 }
 
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* ============================================================
    Focus Visible
    ============================================================ */
@@ -507,6 +522,17 @@ textarea.input {
   outline-offset: 2px;
 }
 
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+}
+
 a:focus:not(:focus-visible) {
   outline: none;
 }
+
+

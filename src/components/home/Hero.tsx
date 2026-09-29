@@ -32,10 +32,18 @@ export default function Hero() {
       ? settings.heroMobileImage
       : '/images/mobileview/fabstore-mobilebanner1.png';
 
-  const mobileImg2 = '/images/mobileview/fabstore-mobilebanner2.png';
-  const mobileImg3 = '/images/mobileview/fabstore-mobileview3.png';
+  const desktopImg2 = settings.heroDesktopImage2 || '/images/mobileview/fabstore-banner2.png';
+  const mobileImg2 = settings.heroMobileImage2 || '/images/mobileview/fabstore-mobilebanner2.png';
+
+  const desktopImg3 = settings.heroDesktopImage3 || '/images/mobileview/fabstore-banner3.png';
+  const mobileImg3 = settings.heroMobileImage3 || '/images/mobileview/fabstore-mobileview3.png';
+
   const title1 = settings.heroTitle || 'Where Style Meets Your Story';
   const subtitle1 = settings.heroSubtitle || 'Specially curated for Women';
+  const title2 = settings.heroTitle2 || 'Crafted with Love & Detail';
+  const subtitle2 = settings.heroSubtitle2 || 'Timeless Occasion Wear & Bespoke Couture';
+  const title3 = settings.heroTitle3 || 'Designed for Every Moment';
+  const subtitle3 = settings.heroSubtitle3 || 'Curated luxury & handcrafted elegance';
 
   const slides = [
     {
@@ -50,21 +58,21 @@ export default function Hero() {
     },
     {
       id: 2,
-      desktopImage: '/images/mobileview/fabstore-banner2.png',
+      desktopImage: desktopImg2,
       mobileImage: mobileImg2,
       tag: 'NEW SEASON COLLECTION',
-      title: 'Crafted with Love & Detail',
-      subtitle: 'Timeless Occasion Wear & Bespoke Couture',
+      title: title2,
+      subtitle: subtitle2,
       primaryCta: { text: 'SHOP NEW ARRIVALS', href: '/shop' },
       secondaryCta: { text: 'CUSTOM STITCHING', href: '/custom-made' },
     },
     {
       id: 3,
-      desktopImage: '/images/mobileview/fabstore-banner3.png',
+      desktopImage: desktopImg3,
       mobileImage: mobileImg3,
       tag: 'ELEGANT STYLES',
-      title: 'Designed for Every Moment',
-      subtitle: 'Curated luxury & handcrafted elegance',
+      title: title3,
+      subtitle: subtitle3,
       primaryCta: { text: 'DISCOVER MORE', href: '/shop' },
       secondaryCta: { text: 'BOOK CONSULTATION', href: '/custom-made' },
     },

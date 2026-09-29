@@ -9,6 +9,7 @@ import { NAV_ITEMS, BRAND } from '@/lib/constants';
 import { getCart } from '@/lib/cart';
 import { supabase } from '@/lib/supabase/client';
 import MobileNav from './MobileNav';
+import HeaderSearchBar from './HeaderSearchBar';
 
 interface HeaderProps {
   cartCount?: number;
@@ -24,6 +25,7 @@ export default function Header({ cartCount: initialCartCount, wishlistCount: ini
   const [cartCount, setCartCount] = useState(initialCartCount ?? 0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -94,10 +96,11 @@ export default function Header({ cartCount: initialCartCount, wishlistCount: ini
 
   return (
     <>
+      <div className="sticky top-0 z-50 w-full">
       {/* DESKTOP HEADER (lg:flex) */}
       <header
-        className={`hidden lg:flex sticky top-0 z-50 h-20 md:h-24 items-center transition-colors duration-300 ${
-          isScrolled
+        className={`hidden lg:flex h-20 md:h-24 items-center transition-colors duration-300 ${
+          isScrolled || searchOpen
             ? 'bg-[#F8F5EF]/95 backdrop-blur-md border-b border-[#E5E0D8] shadow-2xs'
             : 'bg-transparent border-b border-transparent'
         }`}
@@ -172,8 +175,13 @@ export default function Header({ cartCount: initialCartCount, wishlistCount: ini
           {/* Right Action Icons */}
           <div className="flex items-center gap-3.5 sm:gap-4 md:gap-5 shrink-0">
             <button
+              onClick={() => setSearchOpen((prev) => !prev)}
+              data-search-trigger="true"
               aria-label="Search products"
-              className="text-[#243234] hover:text-[#23484A] transition-colors p-1"
+              className={`p-1.5 transition-colors cursor-pointer rounded-full ${
+                searchOpen ? 'text-[#23484A] bg-[#E8E1D5]' : 'text-[#243234] hover:text-[#23484A]'
+              }`}
+              title="Search products"
             >
               <Search className="w-5 h-5 stroke-[1.75]" />
             </button>
@@ -198,7 +206,7 @@ export default function Header({ cartCount: initialCartCount, wishlistCount: ini
             </Link>
 
             <Link
-              href="/account"
+              href="/wishlist"
               aria-label="Wishlist"
               className="relative text-[#243234] hover:text-[#23484A] transition-colors p-1"
             >
@@ -226,7 +234,7 @@ export default function Header({ cartCount: initialCartCount, wishlistCount: ini
 
       {/* MOBILE HEADER (lg:hidden) */}
       <header
-        className={`lg:hidden sticky top-0 z-50 w-full transition-all duration-300 bg-[#F8F5EF] border-b border-[#E5E0D8] ${
+        className={`lg:hidden w-full transition-all duration-300 bg-[#F8F5EF] border-b border-[#E5E0D8] ${
           isScrolled ? 'h-[56px]' : 'h-[62px]'
         } flex items-center justify-between px-3.5`}
       >
@@ -252,10 +260,18 @@ export default function Header({ cartCount: initialCartCount, wishlistCount: ini
 
         {/* Right Mobile Actions */}
         <div className="flex items-center gap-1 sm:gap-2">
-          <button aria-label="Search" className="text-[#243234] hover:text-[#23484A] p-2 min-w-[40px] flex items-center justify-center">
+          <button
+            onClick={() => setSearchOpen((prev) => !prev)}
+            data-search-trigger="true"
+            aria-label="Search"
+            className={`p-2 min-w-[40px] flex items-center justify-center cursor-pointer transition-colors rounded-full ${
+              searchOpen ? 'text-[#23484A] bg-[#E8E1D5]' : 'text-[#243234] hover:text-[#23484A]'
+            }`}
+            title="Search products"
+          >
             <Search className="w-5 h-5 stroke-[1.75]" />
           </button>
-          <Link href="/account" aria-label="Wishlist" className="relative text-[#243234] hover:text-[#23484A] p-2 min-w-[40px] flex items-center justify-center">
+          <Link href="/wishlist" aria-label="Wishlist" className="relative text-[#243234] hover:text-[#23484A] p-2 min-w-[40px] flex items-center justify-center">
             <Heart className={`w-5 h-5 stroke-[1.75] ${wishlistCount > 0 ? 'fill-[#C7A66A] text-[#C7A66A]' : ''}`} />
             {wishlistCount > 0 && (
               <span className="absolute top-0.5 right-0.5 bg-[#C7A66A] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-2xs">
@@ -279,8 +295,19 @@ export default function Header({ cartCount: initialCartCount, wishlistCount: ini
         </div>
       </header>
 
-      {/* Mobile Drawer Navigation */}
-      <MobileNav isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-    </>
-  );
+      {/* Integrated Header Search Dropdown (Slides down from header, NOT a popup modal) */}
+      <HeaderSearchBar isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+    </div>
+
+    {/* Mobile Drawer Navigation */}
+    <MobileNav
+      isOpen={mobileMenuOpen}
+      onClose={() => setMobileMenuOpen(false)}
+      onOpenSearch={() => {
+        setMobileMenuOpen(false);
+        setSearchOpen(true);
+      }}
+    />
+  </>
+);
 }

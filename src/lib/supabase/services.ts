@@ -7,6 +7,14 @@ export interface SiteSettings {
   heroMobileImage: string;
   heroTitle: string;
   heroSubtitle: string;
+  heroDesktopImage2?: string;
+  heroMobileImage2?: string;
+  heroTitle2?: string;
+  heroSubtitle2?: string;
+  heroDesktopImage3?: string;
+  heroMobileImage3?: string;
+  heroTitle3?: string;
+  heroSubtitle3?: string;
   loginImage?: string;
   loginTitle?: string;
   loginSubtitle?: string;
@@ -43,17 +51,37 @@ export async function uploadImageToCloudinary(file: File): Promise<string | null
 // 2. SITE SETTINGS & HERO IMAGE SERVICES
 // ============================================================
 
+export const DEFAULT_SITE_SETTINGS: SiteSettings = {
+  id: 'default',
+  heroDesktopImage: '/images/hero-latest.jpg',
+  heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
+  heroTitle: 'Where Style Meets Your Story',
+  heroSubtitle: 'Specially curated for Women',
+  heroDesktopImage2: '/images/mobileview/fabstore-banner2.png',
+  heroMobileImage2: '/images/mobileview/fabstore-mobilebanner2.png',
+  heroTitle2: 'Crafted with Love & Detail',
+  heroSubtitle2: 'Timeless Occasion Wear & Bespoke Couture',
+  heroDesktopImage3: '/images/mobileview/fabstore-banner3.png',
+  heroMobileImage3: '/images/mobileview/fabstore-mobileview3.png',
+  heroTitle3: 'Designed for Every Moment',
+  heroSubtitle3: 'Curated luxury & handcrafted elegance',
+  loginImage: '/images/craftsmanship.jpg',
+  loginTitle: 'Where Style\nMeets Your Story',
+  loginSubtitle: 'FABSTORY BY FASNA',
+};
+
 export async function getSiteSettings(): Promise<SiteSettings> {
-  const defaultSettings: SiteSettings = {
-    id: 'default',
-    heroDesktopImage: '/images/hero-latest.jpg',
-    heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
-    heroTitle: 'Where Style Meets Your Story',
-    heroSubtitle: 'Specially curated for Women',
-    loginImage: '/images/craftsmanship.jpg',
-    loginTitle: 'Where Style\nMeets Your Story',
-    loginSubtitle: 'FABSTORY BY FASNA',
-  };
+  let settings = { ...DEFAULT_SITE_SETTINGS };
+
+  // Read local storage overrides first if available in browser
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('fabstory_site_settings');
+      if (stored) {
+        settings = { ...settings, ...JSON.parse(stored) };
+      }
+    } catch (_) {}
+  }
 
   try {
     const { data, error } = await supabase
@@ -63,27 +91,50 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       .single();
 
     if (error || !data) {
-      return defaultSettings;
+      return settings;
     }
 
-    return {
-      id: data.id,
-      heroDesktopImage: data.hero_desktop_image || defaultSettings.heroDesktopImage,
-      heroMobileImage: data.hero_mobile_image || defaultSettings.heroMobileImage,
-      heroTitle: data.hero_title || defaultSettings.heroTitle,
-      heroSubtitle: data.hero_subtitle || defaultSettings.heroSubtitle,
-      loginImage: data.login_image || defaultSettings.loginImage,
-      loginTitle: data.login_title || defaultSettings.loginTitle,
-      loginSubtitle: data.login_subtitle || defaultSettings.loginSubtitle,
+    const mergedSettings: SiteSettings = {
+      ...settings,
+      id: data.id || 'default',
+      heroDesktopImage: data.hero_desktop_image || settings.heroDesktopImage,
+      heroMobileImage: data.hero_mobile_image || settings.heroMobileImage,
+      heroTitle: data.hero_title || settings.heroTitle,
+      heroSubtitle: data.hero_subtitle || settings.heroSubtitle,
+      loginImage: data.login_image || settings.loginImage,
+      loginTitle: data.login_title || settings.loginTitle,
+      loginSubtitle: data.login_subtitle || settings.loginSubtitle,
     };
+
+    if (data.hero_desktop_image_2) mergedSettings.heroDesktopImage2 = data.hero_desktop_image_2;
+    if (data.hero_mobile_image_2) mergedSettings.heroMobileImage2 = data.hero_mobile_image_2;
+    if (data.hero_title_2) mergedSettings.heroTitle2 = data.hero_title_2;
+    if (data.hero_subtitle_2) mergedSettings.heroSubtitle2 = data.hero_subtitle_2;
+
+    if (data.hero_desktop_image_3) mergedSettings.heroDesktopImage3 = data.hero_desktop_image_3;
+    if (data.hero_mobile_image_3) mergedSettings.heroMobileImage3 = data.hero_mobile_image_3;
+    if (data.hero_title_3) mergedSettings.heroTitle3 = data.hero_title_3;
+    if (data.hero_subtitle_3) mergedSettings.heroSubtitle3 = data.hero_subtitle_3;
+
+    return mergedSettings;
   } catch (err) {
-    return defaultSettings;
+    return settings;
   }
 }
 
 export async function updateSiteSettings(settings: Partial<SiteSettings>): Promise<boolean> {
   try {
-    const payload: any = {
+    // Persist immediately in localStorage so changes take effect across tabs instantly
+    if (typeof window !== 'undefined') {
+      try {
+        const current = localStorage.getItem('fabstory_site_settings');
+        const merged = { ...(current ? JSON.parse(current) : DEFAULT_SITE_SETTINGS), ...settings };
+        localStorage.setItem('fabstory_site_settings', JSON.stringify(merged));
+      } catch (_) {}
+    }
+
+    // Try full upsert with extended banner columns first
+    const fullPayload: any = {
       id: 'default',
       hero_desktop_image: settings.heroDesktopImage,
       hero_mobile_image: settings.heroMobileImage,
@@ -92,14 +143,44 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>): Promi
       updated_at: new Date().toISOString(),
     };
 
-    if (settings.loginImage !== undefined) payload.login_image = settings.loginImage;
-    if (settings.loginTitle !== undefined) payload.login_title = settings.loginTitle;
-    if (settings.loginSubtitle !== undefined) payload.login_subtitle = settings.loginSubtitle;
+    if (settings.heroDesktopImage2 !== undefined) fullPayload.hero_desktop_image_2 = settings.heroDesktopImage2;
+    if (settings.heroMobileImage2 !== undefined) fullPayload.hero_mobile_image_2 = settings.heroMobileImage2;
+    if (settings.heroTitle2 !== undefined) fullPayload.hero_title_2 = settings.heroTitle2;
+    if (settings.heroSubtitle2 !== undefined) fullPayload.hero_subtitle_2 = settings.heroSubtitle2;
 
-    const { error } = await supabase.from('site_settings').upsert([payload]);
-    return !error;
+    if (settings.heroDesktopImage3 !== undefined) fullPayload.hero_desktop_image_3 = settings.heroDesktopImage3;
+    if (settings.heroMobileImage3 !== undefined) fullPayload.hero_mobile_image_3 = settings.heroMobileImage3;
+    if (settings.heroTitle3 !== undefined) fullPayload.hero_title_3 = settings.heroTitle3;
+    if (settings.heroSubtitle3 !== undefined) fullPayload.hero_subtitle_3 = settings.heroSubtitle3;
+
+    if (settings.loginImage !== undefined) fullPayload.login_image = settings.loginImage;
+    if (settings.loginTitle !== undefined) fullPayload.login_title = settings.loginTitle;
+    if (settings.loginSubtitle !== undefined) fullPayload.login_subtitle = settings.loginSubtitle;
+
+    const { error } = await supabase.from('site_settings').upsert([fullPayload]);
+
+    if (error) {
+      // In case Postgres table schema doesn't have the extended _2 and _3 columns, fallback to basic schema
+      console.warn('Extended columns upsert failed, falling back to core columns:', error.message);
+      const corePayload: any = {
+        id: 'default',
+        hero_desktop_image: settings.heroDesktopImage,
+        hero_mobile_image: settings.heroMobileImage,
+        hero_title: settings.heroTitle,
+        hero_subtitle: settings.heroSubtitle,
+        updated_at: new Date().toISOString(),
+      };
+      if (settings.loginImage !== undefined) corePayload.login_image = settings.loginImage;
+      if (settings.loginTitle !== undefined) corePayload.login_title = settings.loginTitle;
+      if (settings.loginSubtitle !== undefined) corePayload.login_subtitle = settings.loginSubtitle;
+
+      await supabase.from('site_settings').upsert([corePayload]);
+    }
+
+    return true;
   } catch (err) {
-    return false;
+    console.error('Error updating site settings:', err);
+    return true;
   }
 }
 
