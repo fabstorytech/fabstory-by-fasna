@@ -34,9 +34,9 @@ export default function TheFabstory() {
           </div>
 
           {/* Right: Brand Story Panel */}
-          <div className="lg:col-span-6 bg-white relative flex flex-col justify-center px-8 md:px-14 py-12 md:py-16">
+          <div className="lg:col-span-6 bg-[#FAF8F5] relative flex flex-col justify-center px-8 md:px-14 py-12 md:py-16">
             {/* Decorative corner accent */}
-            <div className="absolute top-0 right-0 w-28 h-28 bg-[#F8F5EF] rounded-bl-full opacity-60" />
+            <div className="absolute top-0 right-0 w-28 h-28 bg-[#F2EDE4] rounded-bl-full opacity-60" />
 
             <div className="relative space-y-6">
               {/* Label */}

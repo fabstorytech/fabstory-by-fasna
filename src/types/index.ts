@@ -293,3 +293,18 @@ export interface Testimonial {
   avatarUrl?: string;
   productName?: string;
 }
+
+// --- Customer Types ---
+
+export interface Customer {
+  id: string;
+  email: string;
+  fullName?: string;
+  phone?: string;
+  avatarUrl?: string;
+  role: 'customer' | 'admin';
+  totalOrders: number;
+  createdAt: string;
+  updatedAt: string;
+}
+

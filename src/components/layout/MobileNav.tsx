@@ -4,15 +4,16 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { X, ChevronDown, MessageCircle } from 'lucide-react';
+import { X, ChevronDown, MessageCircle, Search } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 
 interface MobileNavProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenSearch?: () => void;
 }
 
-export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
+export default function MobileNav({ isOpen, onClose, onOpenSearch }: MobileNavProps) {
   const pathname = usePathname();
   const [shopOpen, setShopOpen] = useState(false);
 
@@ -51,6 +52,19 @@ export default function MobileNav({ isOpen, onClose }: MobileNavProps) {
             <X className="w-6 h-6" />
           </button>
         </div>
+
+        {/* Mobile Quick Search Bar */}
+        {onOpenSearch && (
+          <div className="px-6 pt-4">
+            <button
+              onClick={onOpenSearch}
+              className="w-full flex items-center gap-2.5 px-3.5 py-2.5 bg-white border border-[#E5E0D8] rounded-lg text-xs text-[#8C9B9A] shadow-2xs hover:border-[#23484A] transition-colors cursor-pointer text-left"
+            >
+              <Search className="w-4 h-4 text-[#C7A66A] shrink-0" />
+              <span>Search outfits, fabrics...</span>
+            </button>
+          </div>
+        )}
 
         {/* Navigation Menu */}
         <div className="p-6 flex-1 space-y-4">

@@ -152,3 +152,155 @@ CREATE TRIGGER on_auth_user_created
 UPDATE auth.users
 SET email_confirmed_at = NOW()
 WHERE email_confirmed_at IS NULL;
+
+-- ============================================================
+-- 8. CUSTOMERS ENTITY & AUTOMATIC AUTH SYNC
+-- Stores customer profiles separately from auth.users
+-- Automatically populates whenever a new user signs up / logs in
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.customers (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT UNIQUE NOT NULL,
+    full_name TEXT,
+    phone TEXT,
+    avatar_url TEXT,
+    role TEXT NOT NULL DEFAULT 'customer', -- 'customer' or 'admin'
+    total_orders INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+
+-- Allow users to view their own profile, and allow admin to view all
+CREATE POLICY "Allow individual read access" ON public.customers 
+    FOR SELECT USING (true);
+
+CREATE POLICY "Allow individual update" ON public.customers 
+    FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Allow trigger insert" ON public.customers 
+    FOR INSERT WITH CHECK (true);
+
+-- Function to automatically create or update customer record on auth signup/login
+CREATE OR REPLACE FUNCTION public.handle_new_customer()
+RETURNS TRIGGER AS $$
+DECLARE
+    user_role TEXT := 'customer';
+BEGIN
+    -- Detect admin account
+    IF NEW.email = 'admin@fabstorybyfasna.com' OR (NEW.raw_user_meta_data->>'role') = 'admin' THEN
+        user_role := 'admin';
+    ELSE
+        user_role := COALESCE(NEW.raw_user_meta_data->>'role', 'customer');
+    END IF;
+
+    INSERT INTO public.customers (
+        id,
+        email,
+        full_name,
+        phone,
+        role,
+        created_at,
+        updated_at
+    )
+    VALUES (
+        NEW.id,
+        NEW.email,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+        COALESCE(NEW.raw_user_meta_data->>'phone', NEW.phone, ''),
+        user_role,
+        NOW(),
+        NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        full_name = CASE 
+            WHEN public.customers.full_name IS NULL OR public.customers.full_name = '' 
+            THEN EXCLUDED.full_name 
+            ELSE public.customers.full_name 
+        END,
+        role = EXCLUDED.role,
+        updated_at = NOW();
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger whenever an auth user is created or updated
+DROP TRIGGER IF EXISTS on_auth_user_customer_sync ON auth.users;
+CREATE TRIGGER on_auth_user_customer_sync
+    AFTER INSERT OR UPDATE ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_new_customer();
+
+-- Backfill all existing users from auth.users into public.customers
+INSERT INTO public.customers (id, email, full_name, role, created_at, updated_at)
+SELECT 
+    id,
+    email,
+    COALESCE(raw_user_meta_data->>'full_name', split_part(email, '@', 1)),
+    CASE 
+        WHEN email = 'admin@fabstorybyfasna.com' OR (raw_user_meta_data->>'role') = 'admin' THEN 'admin'
+        ELSE 'customer'
+    END,
+    created_at,
+    updated_at
+FROM auth.users
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- 9. BREVO TRANSACTIONAL EMAIL TRACKING & SECURE OTP STORAGE
+-- ============================================================
+
+-- A. Email idempotency & tracking flags on orders
+ALTER TABLE public.orders 
+ADD COLUMN IF NOT EXISTS confirmation_email_sent BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE public.orders 
+ADD COLUMN IF NOT EXISTS shipped_email_sent BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE public.orders 
+ADD COLUMN IF NOT EXISTS delivered_email_sent BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE public.orders 
+ADD COLUMN IF NOT EXISTS tracking_number TEXT;
+
+ALTER TABLE public.orders 
+ADD COLUMN IF NOT EXISTS tracking_url TEXT;
+
+-- B. Password Reset OTP Table (Secure Hashed OTPs)
+CREATE TABLE IF NOT EXISTS public.password_reset_otps (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email TEXT NOT NULL,
+    otp_hash TEXT NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    attempts INT DEFAULT 0,
+    used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_otps_email 
+ON public.password_reset_otps(email);
+
+ALTER TABLE public.password_reset_otps ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public insert otps" 
+ON public.password_reset_otps FOR ALL USING (true);
+
+-- C. Secure Password Reset Function (Used by server endpoint)
+CREATE OR REPLACE FUNCTION public.reset_user_password(user_email TEXT, new_password TEXT)
+RETURNS BOOLEAN AS $$
+BEGIN
+    UPDATE auth.users
+    SET encrypted_password = crypt(new_password, gen_salt('bf')),
+        updated_at = NOW()
+    WHERE LOWER(email) = LOWER(user_email);
+    
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+

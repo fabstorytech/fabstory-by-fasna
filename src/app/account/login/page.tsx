@@ -82,15 +82,108 @@ function BotanicalCorner({ className = 'w-32 h-32' }: { className?: string }) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [forgotStep, setForgotStep] = useState<'email' | 'otp' | 'success'>('email');
   const [identifier, setIdentifier] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [canResendEmail, setCanResendEmail] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Resend OTP countdown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
+
+  const handleSendForgotPasswordOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanId = identifier.trim();
+    if (!cleanId) {
+      setMessage({ type: 'error', text: 'Please enter your registered email address.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanId }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setMessage({ type: 'error', text: data.error || 'Failed to send verification code.' });
+        if (data.cooldownRemaining) setResendCooldown(data.cooldownRemaining);
+      } else {
+        setMessage({
+          type: 'success',
+          text: `Verification code sent to ${cleanId}! Please check your email inbox.`,
+        });
+        setForgotStep('otp');
+        setResendCooldown(60);
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Could not send verification code at this time.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPasswordWithOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode.trim() || otpCode.trim().length !== 6) {
+      setMessage({ type: 'error', text: 'Please enter the 6-digit code received in your email.' });
+      return;
+    }
+    if (!newPassword || newPassword.length < 6) {
+      setMessage({ type: 'error', text: 'New password must be at least 6 characters long.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: identifier.trim(),
+          otp: otpCode.trim(),
+          newPassword,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setMessage({ type: 'error', text: data.error || 'Invalid or expired verification code.' });
+      } else {
+        setMessage({
+          type: 'success',
+          text: 'Password reset successfully! You can now sign in with your new password.',
+        });
+        setForgotStep('success');
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Could not reset password. Please try again.' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleResendEmail = async () => {
     let cleanId = identifier.trim().toLowerCase();
@@ -431,10 +524,16 @@ export default function LoginPage() {
           {/* Form Header */}
           <div className="text-center space-y-1 mb-6">
             <h1 className="font-serif text-2xl sm:text-3xl lg:text-[32px] text-[#1C3F3A] font-normal tracking-tight">
-              {mode === 'login' ? 'Welcome back' : 'Create an account'}
+              {mode === 'forgot'
+                ? 'Reset Password'
+                : mode === 'login'
+                ? 'Welcome back'
+                : 'Create an account'}
             </h1>
             <p className="text-xs sm:text-[13px] text-[#6F7775]">
-              {mode === 'login'
+              {mode === 'forgot'
+                ? 'Enter your registered email to receive a 6-digit verification code.'
+                : mode === 'login'
                 ? 'Sign in to continue your Fabstory journey.'
                 : 'Join Fabstory to explore bespoke curated collections.'}
             </p>
@@ -459,7 +558,7 @@ export default function LoginPage() {
           )}
 
           {/* Resend Confirmation Email Option */}
-          {canResendEmail && (
+          {canResendEmail && mode !== 'forgot' && (
             <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-900 space-y-2">
               <p className="leading-relaxed">
                 Check your inbox (and spam folder) for the verification email.
@@ -475,126 +574,293 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 max-w-[340px] w-full mx-auto">
-            {/* Full Name (Sign Up mode only) */}
-            {mode === 'signup' && (
+          {/* FORGOT PASSWORD FORM (Brevo OTP Flow) */}
+          {mode === 'forgot' ? (
+            <div className="space-y-4 max-w-[340px] w-full mx-auto">
+              {forgotStep === 'email' && (
+                <form onSubmit={handleSendForgotPasswordOtp} className="space-y-4">
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-medium text-[#243234] block">
+                      Registered Email Address
+                    </label>
+                    <div className="relative flex items-center">
+                      <User className="w-4 h-4 text-[#8C9B9A] absolute left-3.5" />
+                      <input
+                        type="email"
+                        placeholder="Enter your email"
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
+                        required
+                        className="w-full border border-[#D9D3C8] rounded-md pl-10 pr-3.5 py-3 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1C3F3A] focus:ring-1 focus:ring-[#1C3F3A] placeholder:text-[#A0A8A6] text-[#1C3F3A] transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-[#1C3F3A] hover:bg-[#14302C] text-white font-semibold text-xs tracking-[0.14em] uppercase py-3.5 rounded-md transition-all shadow-sm cursor-pointer disabled:opacity-75"
+                  >
+                    {isSubmitting ? 'SENDING CODE...' : 'SEND VERIFICATION CODE'}
+                  </button>
+
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('login');
+                        setMessage(null);
+                      }}
+                      className="text-xs text-[#B08F52] hover:underline font-semibold cursor-pointer"
+                    >
+                      ← Back to Sign In
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {forgotStep === 'otp' && (
+                <form onSubmit={handleResetPasswordWithOtp} className="space-y-4">
+                  <div className="p-3 bg-[#FAF8F5] border border-[#E5E0D8] rounded-md text-center text-xs text-[#6F7775]">
+                    Enter the 6-digit code sent to <strong className="text-[#1C3F3A]">{identifier}</strong>
+                  </div>
+
+                  {/* 6-Digit OTP */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-medium text-[#243234] block">
+                      6-Digit Verification Code
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="123456"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                      required
+                      className="w-full border border-[#D9D3C8] rounded-md py-3 text-center tracking-[0.4em] font-mono text-lg font-bold bg-white focus:outline-none focus:border-[#1C3F3A] focus:ring-1 focus:ring-[#1C3F3A] text-[#1C3F3A] transition-all"
+                    />
+                  </div>
+
+                  {/* New Password */}
+                  <div className="space-y-1.5 text-left">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-[#243234] block">
+                        New Password
+                      </label>
+                      <span className="text-[11px] text-[#8C9B9A]">Min. 6 chars</span>
+                    </div>
+                    <div className="relative flex items-center">
+                      <Lock className="w-4 h-4 text-[#8C9B9A] absolute left-3.5" />
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        placeholder="Enter new password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="w-full border border-[#D9D3C8] rounded-md pl-10 pr-10 py-3 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1C3F3A] focus:ring-1 focus:ring-[#1C3F3A] placeholder:text-[#A0A8A6] text-[#1C3F3A] transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3.5 text-[#8C9B9A] hover:text-[#1C3F3A] cursor-pointer"
+                        aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-[#1C3F3A] hover:bg-[#14302C] text-white font-semibold text-xs tracking-[0.14em] uppercase py-3.5 rounded-md transition-all shadow-sm cursor-pointer disabled:opacity-75"
+                  >
+                    {isSubmitting ? 'RESETTING PASSWORD...' : 'SET NEW PASSWORD'}
+                  </button>
+
+                  {/* Resend Cooldown / Button */}
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSendForgotPasswordOtp()}
+                      disabled={resendCooldown > 0 || isSubmitting}
+                      className="text-[#B08F52] hover:underline font-semibold disabled:text-[#A0A8A6] disabled:no-underline cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {resendCooldown > 0 ? `Resend Code in ${resendCooldown}s` : 'Resend Code'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('login');
+                        setMessage(null);
+                      }}
+                      className="text-[#6F7775] hover:text-[#1C3F3A] cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {forgotStep === 'success' && (
+                <div className="space-y-4 text-center">
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-md text-xs text-green-800 space-y-1">
+                    <strong className="block text-sm">✓ Password Updated!</strong>
+                    <span>Your account password has been reset successfully.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('login');
+                      setForgotStep('email');
+                      setPassword('');
+                      setOtpCode('');
+                      setNewPassword('');
+                      setMessage(null);
+                    }}
+                    className="w-full bg-[#1C3F3A] hover:bg-[#14302C] text-white font-semibold text-xs tracking-[0.14em] uppercase py-3.5 rounded-md transition-all shadow-sm cursor-pointer"
+                  >
+                    SIGN IN WITH NEW PASSWORD
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* STANDARD LOGIN / SIGNUP FORM */
+            <form onSubmit={handleSubmit} className="space-y-4 max-w-[340px] w-full mx-auto">
+              {/* Full Name (Sign Up mode only) */}
+              {mode === 'signup' && (
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-medium text-[#243234] block">
+                    Full Name
+                  </label>
+                  <div className="relative flex items-center">
+                    <User className="w-4 h-4 text-[#8C9B9A] absolute left-3.5" />
+                    <input
+                      type="text"
+                      placeholder="Your Full Name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      required={mode === 'signup'}
+                      className="w-full border border-[#D9D3C8] rounded-md pl-10 pr-3.5 py-3 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1C3F3A] focus:ring-1 focus:ring-[#1C3F3A] placeholder:text-[#A0A8A6] text-[#1C3F3A] transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Email or Mobile Number Input */}
               <div className="space-y-1.5 text-left">
                 <label className="text-xs font-medium text-[#243234] block">
-                  Full Name
+                  Email or mobile number
                 </label>
                 <div className="relative flex items-center">
                   <User className="w-4 h-4 text-[#8C9B9A] absolute left-3.5" />
                   <input
                     type="text"
-                    placeholder="Your Full Name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required={mode === 'signup'}
+                    placeholder="Enter email or mobile number"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    required
                     className="w-full border border-[#D9D3C8] rounded-md pl-10 pr-3.5 py-3 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1C3F3A] focus:ring-1 focus:ring-[#1C3F3A] placeholder:text-[#A0A8A6] text-[#1C3F3A] transition-all"
                   />
                 </div>
               </div>
-            )}
 
-            {/* Email or Mobile Number Input */}
-            <div className="space-y-1.5 text-left">
-              <label className="text-xs font-medium text-[#243234] block">
-                Email or mobile number
-              </label>
-              <div className="relative flex items-center">
-                <User className="w-4 h-4 text-[#8C9B9A] absolute left-3.5" />
-                <input
-                  type="text"
-                  placeholder="Enter email or mobile number"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  required
-                  className="w-full border border-[#D9D3C8] rounded-md pl-10 pr-3.5 py-3 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1C3F3A] focus:ring-1 focus:ring-[#1C3F3A] placeholder:text-[#A0A8A6] text-[#1C3F3A] transition-all"
-                />
+              {/* Password Field (Both Sign In and Sign Up modes) */}
+              <div className="space-y-1.5 text-left">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-[#243234] block">
+                    {mode === 'signup' ? 'Create Password' : 'Password'}
+                  </label>
+                  {mode === 'login' ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('forgot');
+                        setForgotStep('email');
+                        setMessage(null);
+                      }}
+                      className="text-[11px] text-[#B08F52] hover:text-[#937540] font-medium transition-colors cursor-pointer"
+                    >
+                      Forgot Password?
+                    </button>
+                  ) : (
+                    <span className="text-[11px] text-[#8C9B9A]">Min. 6 characters</span>
+                  )}
+                </div>
+                <div className="relative flex items-center">
+                  <Lock className="w-4 h-4 text-[#8C9B9A] absolute left-3.5" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder={mode === 'signup' ? 'At least 6 characters' : 'Enter your password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="w-full border border-[#D9D3C8] rounded-md pl-10 pr-10 py-3 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1C3F3A] focus:ring-1 focus:ring-[#1C3F3A] placeholder:text-[#A0A8A6] text-[#1C3F3A] transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 text-[#8C9B9A] hover:text-[#1C3F3A] cursor-pointer"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Password Field (Both Sign In and Sign Up modes) */}
-            <div className="space-y-1.5 text-left">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-[#243234] block">
-                  {mode === 'signup' ? 'Create Password' : 'Password'}
-                </label>
-                {mode === 'login' && (
-                  <span className="text-[11px] text-[#8C9B9A]">Min. 6 characters</span>
+              {/* Primary Action Button: SIGN IN / CREATE ACCOUNT */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-[#1C3F3A] hover:bg-[#14302C] text-white font-semibold text-xs tracking-[0.14em] uppercase py-3.5 rounded-md transition-all mt-2 shadow-sm active:scale-[0.99] cursor-pointer disabled:opacity-75"
+              >
+                {isSubmitting
+                  ? mode === 'login'
+                    ? 'SIGNING IN...'
+                    : 'CREATING ACCOUNT...'
+                  : mode === 'login'
+                  ? 'SIGN IN'
+                  : 'CREATE ACCOUNT'}
+              </button>
+
+              {/* Bottom Toggle Link */}
+              <div className="pt-3 text-center text-xs text-[#6F7775]">
+                {mode === 'login' ? (
+                  <>
+                    New to Fabstory?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('signup');
+                        setMessage(null);
+                      }}
+                      className="text-[#B08F52] hover:text-[#937540] font-semibold underline underline-offset-2 transition-colors cursor-pointer"
+                    >
+                      Create an account
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode('login');
+                        setMessage(null);
+                      }}
+                      className="text-[#B08F52] hover:text-[#937540] font-semibold underline underline-offset-2 transition-colors cursor-pointer"
+                    >
+                      Sign in
+                    </button>
+                  </>
                 )}
               </div>
-              <div className="relative flex items-center">
-                <Lock className="w-4 h-4 text-[#8C9B9A] absolute left-3.5" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder={mode === 'signup' ? 'At least 6 characters' : 'Enter your password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="w-full border border-[#D9D3C8] rounded-md pl-10 pr-10 py-3 text-xs sm:text-sm bg-white focus:outline-none focus:border-[#1C3F3A] focus:ring-1 focus:ring-[#1C3F3A] placeholder:text-[#A0A8A6] text-[#1C3F3A] transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 text-[#8C9B9A] hover:text-[#1C3F3A] cursor-pointer"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Primary Action Button: SIGN IN / CREATE ACCOUNT */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#1C3F3A] hover:bg-[#14302C] text-white font-semibold text-xs tracking-[0.14em] uppercase py-3.5 rounded-md transition-all mt-2 shadow-sm active:scale-[0.99] cursor-pointer disabled:opacity-75"
-            >
-              {isSubmitting
-                ? mode === 'login'
-                  ? 'SIGNING IN...'
-                  : 'CREATING ACCOUNT...'
-                : mode === 'login'
-                ? 'SIGN IN'
-                : 'CREATE ACCOUNT'}
-            </button>
-
-            {/* Bottom Toggle Link */}
-            <div className="pt-3 text-center text-xs text-[#6F7775]">
-              {mode === 'login' ? (
-                <>
-                  New to Fabstory?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('signup');
-                      setMessage(null);
-                    }}
-                    className="text-[#B08F52] hover:text-[#937540] font-semibold underline underline-offset-2 transition-colors cursor-pointer"
-                  >
-                    Create an account
-                  </button>
-                </>
-              ) : (
-                <>
-                  Already have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode('login');
-                      setMessage(null);
-                    }}
-                    className="text-[#B08F52] hover:text-[#937540] font-semibold underline underline-offset-2 transition-colors cursor-pointer"
-                  >
-                    Sign in
-                  </button>
-                </>
-              )}
-            </div>
-          </form>
+            </form>
+          )}
 
           {/* Back link on desktop */}
           <div className="hidden md:block text-center mt-6">
