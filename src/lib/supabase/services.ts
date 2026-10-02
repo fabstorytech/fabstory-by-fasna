@@ -82,7 +82,53 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 export async function getSiteSettings(): Promise<SiteSettings> {
   let settings = { ...DEFAULT_SITE_SETTINGS };
 
-  // 1. Try to fetch from server-side API route (handles RLS bypass and fresh live DB data on Vercel)
+  // 1. Direct Supabase query (works on server runtime with 0ms delay and in browser)
+  try {
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('*')
+      .eq('id', 'default')
+      .maybeSingle();
+
+    if (!error && data) {
+      const mergedSettings: SiteSettings = {
+        ...settings,
+        id: data.id || 'default',
+        heroDesktopImage: data.hero_desktop_image !== undefined ? (data.hero_desktop_image ?? '') : settings.heroDesktopImage,
+        heroMobileImage: data.hero_mobile_image !== undefined ? (data.hero_mobile_image ?? '') : settings.heroMobileImage,
+        heroTitle: data.hero_title || settings.heroTitle,
+        heroSubtitle: data.hero_subtitle || settings.heroSubtitle,
+        loginImage: data.login_image !== undefined ? (data.login_image ?? '') : settings.loginImage,
+        loginTitle: data.login_title || settings.loginTitle,
+        loginSubtitle: data.login_subtitle || settings.loginSubtitle,
+      };
+
+      if (data.slide1_active !== undefined) mergedSettings.slide1Active = Boolean(data.slide1_active);
+      if (data.hero_desktop_image_2 !== undefined) mergedSettings.heroDesktopImage2 = data.hero_desktop_image_2 ?? '';
+      if (data.hero_mobile_image_2 !== undefined) mergedSettings.heroMobileImage2 = data.hero_mobile_image_2 ?? '';
+      if (data.hero_title_2) mergedSettings.heroTitle2 = data.hero_title_2;
+      if (data.hero_subtitle_2) mergedSettings.heroSubtitle2 = data.hero_subtitle_2;
+      if (data.slide2_active !== undefined) mergedSettings.slide2Active = Boolean(data.slide2_active);
+
+      if (data.hero_desktop_image_3 !== undefined) mergedSettings.heroDesktopImage3 = data.hero_desktop_image_3 ?? '';
+      if (data.hero_mobile_image_3 !== undefined) mergedSettings.heroMobileImage3 = data.hero_mobile_image_3 ?? '';
+      if (data.hero_title_3) mergedSettings.heroTitle3 = data.hero_title_3;
+      if (data.hero_subtitle_3) mergedSettings.heroSubtitle3 = data.hero_subtitle_3;
+      if (data.slide3_active !== undefined) mergedSettings.slide3Active = Boolean(data.slide3_active);
+
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('fabstory_site_settings', JSON.stringify(mergedSettings));
+        } catch (_) {}
+      }
+
+      return mergedSettings;
+    }
+  } catch (err) {
+    // Continue to API or localStorage fallback
+  }
+
+  // 2. If in browser and direct query had an issue, query the server API endpoint
   if (typeof window !== 'undefined') {
     try {
       const res = await fetch('/api/admin/site-settings', {
@@ -104,7 +150,6 @@ export async function getSiteSettings(): Promise<SiteSettings> {
             loginTitle: data.login_title || settings.loginTitle,
             loginSubtitle: data.login_subtitle || settings.loginSubtitle,
           };
-
           if (data.slide1_active !== undefined) merged.slide1Active = Boolean(data.slide1_active);
           if (data.hero_desktop_image_2 !== undefined) merged.heroDesktopImage2 = data.hero_desktop_image_2 ?? '';
           if (data.hero_mobile_image_2 !== undefined) merged.heroMobileImage2 = data.hero_mobile_image_2 ?? '';
@@ -126,60 +171,16 @@ export async function getSiteSettings(): Promise<SiteSettings> {
         }
       }
     } catch (_) {}
-  }
 
-  // 2. Read local storage cache if available
-  if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('fabstory_site_settings');
       if (stored) {
-        settings = { ...settings, ...JSON.parse(stored) };
+        return { ...settings, ...JSON.parse(stored) };
       }
     } catch (_) {}
   }
 
-  // 3. Fallback to direct Supabase client query
-  try {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('*')
-      .eq('id', 'default')
-      .maybeSingle();
-
-    if (error || !data) {
-      return settings;
-    }
-
-    const mergedSettings: SiteSettings = {
-      ...settings,
-      id: data.id || 'default',
-      heroDesktopImage: data.hero_desktop_image !== undefined ? (data.hero_desktop_image ?? '') : settings.heroDesktopImage,
-      heroMobileImage: data.hero_mobile_image !== undefined ? (data.hero_mobile_image ?? '') : settings.heroMobileImage,
-      heroTitle: data.hero_title || settings.heroTitle,
-      heroSubtitle: data.hero_subtitle || settings.heroSubtitle,
-      loginImage: data.login_image !== undefined ? (data.login_image ?? '') : settings.loginImage,
-      loginTitle: data.login_title || settings.loginTitle,
-      loginSubtitle: data.login_subtitle || settings.loginSubtitle,
-    };
-
-    if (data.slide1_active !== undefined) mergedSettings.slide1Active = Boolean(data.slide1_active);
-
-    if (data.hero_desktop_image_2 !== undefined) mergedSettings.heroDesktopImage2 = data.hero_desktop_image_2 ?? '';
-    if (data.hero_mobile_image_2 !== undefined) mergedSettings.heroMobileImage2 = data.hero_mobile_image_2 ?? '';
-    if (data.hero_title_2) mergedSettings.heroTitle2 = data.hero_title_2;
-    if (data.hero_subtitle_2) mergedSettings.heroSubtitle2 = data.hero_subtitle_2;
-    if (data.slide2_active !== undefined) mergedSettings.slide2Active = Boolean(data.slide2_active);
-
-    if (data.hero_desktop_image_3 !== undefined) mergedSettings.heroDesktopImage3 = data.hero_desktop_image_3 ?? '';
-    if (data.hero_mobile_image_3 !== undefined) mergedSettings.heroMobileImage3 = data.hero_mobile_image_3 ?? '';
-    if (data.hero_title_3) mergedSettings.heroTitle3 = data.hero_title_3;
-    if (data.hero_subtitle_3) mergedSettings.heroSubtitle3 = data.hero_subtitle_3;
-    if (data.slide3_active !== undefined) mergedSettings.slide3Active = Boolean(data.slide3_active);
-
-    return mergedSettings;
-  } catch (err) {
-    return settings;
-  }
+  return settings;
 }
 
 export async function updateSiteSettings(settings: Partial<SiteSettings>): Promise<boolean> {
