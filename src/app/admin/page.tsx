@@ -446,9 +446,9 @@ export default function AdminDashboardPage() {
       const res = await updateProduct(editingProductId, {
         name: newProductName,
         price: Number(newProductPrice),
-        compareAtPrice: newProductComparePrice ? Number(newProductComparePrice) : null,
+        compareAtPrice: newProductComparePrice ? Number(newProductComparePrice) : undefined,
         type: newProductType,
-        categoryId: newProductCategory || null,
+        categoryId: newProductCategory || undefined,
         description: newProductDescription,
         shortDescription: newProductName,
         stock: Number(newProductStock),
