@@ -5,14 +5,20 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getSiteSettings, SiteSettings } from '@/lib/supabase/services';
 
-export default function Hero() {
-  const [settings, setSettings] = useState<SiteSettings>({
-    id: 'default',
-    heroDesktopImage: '/images/hero-latest.jpg',
-    heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
-    heroTitle: 'Where Style Meets Your Story',
-    heroSubtitle: 'Specially curated for Women',
-  });
+interface HeroProps {
+  initialSettings?: SiteSettings;
+}
+
+export default function Hero({ initialSettings }: HeroProps) {
+  const [settings, setSettings] = useState<SiteSettings>(
+    initialSettings || {
+      id: 'default',
+      heroDesktopImage: '/images/hero-latest.jpg',
+      heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
+      heroTitle: 'Where Style Meets Your Story',
+      heroSubtitle: 'Specially curated for Women',
+    }
+  );
 
   const [currentSlide, setCurrentSlide] = useState(0);
 
