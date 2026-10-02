@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
-import { X, ChevronDown, MessageCircle, Search } from 'lucide-react';
+import { X, ChevronDown, MessageCircle, Search, Scissors, Sparkles, Layers, ArrowRight } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 
 interface MobileNavProps {
@@ -16,6 +16,7 @@ interface MobileNavProps {
 export default function MobileNav({ isOpen, onClose, onOpenSearch }: MobileNavProps) {
   const pathname = usePathname();
   const [shopOpen, setShopOpen] = useState(false);
+  const [fabricsOpen, setFabricsOpen] = useState(false);
 
   if (!isOpen) return null;
 
@@ -47,7 +48,7 @@ export default function MobileNav({ isOpen, onClose, onOpenSearch }: MobileNavPr
           <button
             onClick={onClose}
             aria-label="Close menu"
-            className="p-1 text-[#243234] hover:text-[#23484A]"
+            className="p-1 text-[#243234] hover:text-[#23484A] cursor-pointer"
           >
             <X className="w-6 h-6" />
           </button>
@@ -84,50 +85,167 @@ export default function MobileNav({ isOpen, onClose, onOpenSearch }: MobileNavPr
             </li>
 
             {/* Shop Accordion */}
-            <li className="border-b border-t border-[#E5E0D8]/60 py-2">
+            <li className="border-t border-[#E5E0D8]/60 pt-2.5">
               <button
                 onClick={() => setShopOpen(!shopOpen)}
-                className={`w-full flex items-center justify-between font-serif text-lg transition-colors ${
-                  pathname.startsWith('/shop') || pathname === '/custom-made' || pathname === '/fabrics'
+                className={`w-full flex items-center justify-between font-serif text-lg transition-colors cursor-pointer ${
+                  pathname.startsWith('/shop')
                     ? 'text-[#23484A] font-semibold'
                     : 'text-[#243234] hover:text-[#23484A]'
                 }`}
               >
-                <span>Shop</span>
+                <span>Shop Outfits</span>
                 <ChevronDown
                   className={`w-4 h-4 text-[#718887] transition-transform duration-300 ${
-                    shopOpen ? 'rotate-180' : ''
+                    shopOpen ? 'rotate-180 text-[#23484A]' : ''
                   }`}
                 />
               </button>
 
               {shopOpen && (
-                <ul className="pl-4 pt-3 pb-1 space-y-2.5 font-sans text-xs uppercase tracking-wider text-[#6F7775]">
+                <ul className="pl-3 pt-2.5 pb-1 space-y-2 font-sans text-xs uppercase tracking-wider text-[#6F7775]">
                   <li>
+                    <Link
+                      href="/shop"
+                      onClick={onClose}
+                      className="flex items-center justify-between py-1 text-[#23484A] font-bold"
+                    >
+                      <span>All Products</span>
+                      <ArrowRight className="w-3 h-3 text-[#C7A66A]" />
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/shop?category=dresses"
+                      onClick={onClose}
+                      className="block py-1 hover:text-[#23484A]"
+                    >
+                      Dresses & Gowns
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/shop?category=anarkali"
+                      onClick={onClose}
+                      className="block py-1 hover:text-[#23484A]"
+                    >
+                      Anarkali & Festive
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/shop?category=abaya"
+                      onClick={onClose}
+                      className="block py-1 hover:text-[#23484A]"
+                    >
+                      Abaya & Modest Wear
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/shop?category=kurti"
+                      onClick={onClose}
+                      className="block py-1 hover:text-[#23484A]"
+                    >
+                      Kurti & Sets
+                    </Link>
+                  </li>
+                  <li className="pt-1">
                     <Link
                       href="/shop?type=ready_stock"
                       onClick={onClose}
-                      className="block hover:text-[#23484A]"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-full text-[10px] font-bold"
                     >
-                      Ready to Ship
+                      <Sparkles className="w-3 h-3 text-[#C7A66A]" />
+                      <span>Ready to Ship (Express)</span>
                     </Link>
                   </li>
-                  <li>
-                    <Link
-                      href="/custom-made"
-                      onClick={onClose}
-                      className={`block ${pathname === '/custom-made' ? 'text-[#23484A] font-semibold' : 'hover:text-[#23484A]'}`}
-                    >
-                      Custom Made
-                    </Link>
-                  </li>
+                </ul>
+              )}
+            </li>
+
+            {/* Custom Made Link */}
+            <li>
+              <Link
+                href="/custom-made"
+                onClick={onClose}
+                className={`flex items-center justify-between transition-colors py-1 ${
+                  pathname === '/custom-made'
+                    ? 'text-[#23484A] font-semibold'
+                    : 'text-[#243234] hover:text-[#23484A]'
+                }`}
+              >
+                <span>Custom Made</span>
+                <span className="text-[9px] uppercase tracking-wider bg-[#23484A]/10 text-[#23484A] px-2 py-0.5 rounded-full font-sans font-bold">
+                  Bespoke
+                </span>
+              </Link>
+            </li>
+
+            {/* Fabrics Accordion */}
+            <li className="border-t border-[#E5E0D8]/60 pt-2.5">
+              <button
+                onClick={() => setFabricsOpen(!fabricsOpen)}
+                className={`w-full flex items-center justify-between font-serif text-lg transition-colors cursor-pointer ${
+                  pathname.startsWith('/fabrics')
+                    ? 'text-[#23484A] font-semibold'
+                    : 'text-[#243234] hover:text-[#23484A]'
+                }`}
+              >
+                <span>Fabrics</span>
+                <ChevronDown
+                  className={`w-4 h-4 text-[#718887] transition-transform duration-300 ${
+                    fabricsOpen ? 'rotate-180 text-[#23484A]' : ''
+                  }`}
+                />
+              </button>
+
+              {fabricsOpen && (
+                <ul className="pl-3 pt-2.5 pb-1 space-y-2 font-sans text-xs uppercase tracking-wider text-[#6F7775]">
                   <li>
                     <Link
                       href="/fabrics"
                       onClick={onClose}
-                      className={`block ${pathname.startsWith('/fabrics') ? 'text-[#23484A] font-semibold' : 'hover:text-[#23484A]'}`}
+                      className="flex items-center justify-between py-1 text-[#23484A] font-bold"
                     >
-                      Fabrics
+                      <span>All Fabrics by Meter</span>
+                      <ArrowRight className="w-3 h-3 text-[#C7A66A]" />
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/fabrics?material=cotton"
+                      onClick={onClose}
+                      className="block py-1 hover:text-[#23484A]"
+                    >
+                      Pure Cotton & Mulmul
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/fabrics?material=linen"
+                      onClick={onClose}
+                      className="block py-1 hover:text-[#23484A]"
+                    >
+                      Natural Organic Linen
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/fabrics?material=silk"
+                      onClick={onClose}
+                      className="block py-1 hover:text-[#23484A]"
+                    >
+                      Pure Silk & Organza
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/fabrics?material=chiffon"
+                      onClick={onClose}
+                      className="block py-1 hover:text-[#23484A]"
+                    >
+                      Chiffon & Georgette
                     </Link>
                   </li>
                 </ul>

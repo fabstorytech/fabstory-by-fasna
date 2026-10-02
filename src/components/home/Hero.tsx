@@ -3,22 +3,28 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getSiteSettings, SiteSettings } from '@/lib/supabase/services';
+import { getSiteSettings, SiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/supabase/services';
 
 interface HeroProps {
   initialSettings?: SiteSettings;
 }
 
 export default function Hero({ initialSettings }: HeroProps) {
-  const [settings, setSettings] = useState<SiteSettings>(
-    initialSettings || {
-      id: 'default',
-      heroDesktopImage: '/images/hero-latest.jpg',
-      heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
-      heroTitle: 'Where Style Meets Your Story',
-      heroSubtitle: 'Specially curated for Women',
+  const [settings, setSettings] = useState<SiteSettings>(() => {
+    if (initialSettings) {
+      return initialSettings;
     }
-  );
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('fabstory_site_settings');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed) return parsed;
+        }
+      } catch (_) {}
+    }
+    return DEFAULT_SITE_SETTINGS;
+  });
 
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -44,7 +50,7 @@ export default function Hero({ initialSettings }: HeroProps) {
   const title3 = settings.heroTitle3 || 'Designed for Every Moment';
   const subtitle3 = settings.heroSubtitle3 || 'Curated luxury & handcrafted elegance';
 
-  // Construct active slides dynamically
+  // Construct active slides dynamically - only include slides that have valid, non-empty, non-deleted images
   const activeSlides: Array<{
     id: number;
     desktopImage: string;
@@ -57,11 +63,16 @@ export default function Hero({ initialSettings }: HeroProps) {
   }> = [];
 
   // Slide 1 (Primary Showcase)
-  if (settings.slide1Active !== false && (desktopImg1 || mobileImg1 || settings.heroDesktopImage !== '')) {
+  if (
+    settings.slide1Active !== false &&
+    desktopImg1 &&
+    desktopImg1.trim() !== '' &&
+    desktopImg1 !== 'REMOVED'
+  ) {
     activeSlides.push({
       id: 1,
-      desktopImage: desktopImg1 || '/images/hero-latest.jpg',
-      mobileImage: mobileImg1 || '/images/mobileview/fabstore-mobilebanner1.png',
+      desktopImage: desktopImg1,
+      mobileImage: mobileImg1 && mobileImg1.trim() !== '' && mobileImg1 !== 'REMOVED' ? mobileImg1 : desktopImg1,
       tag: 'FABSTORY BY FASNA',
       title: title1,
       subtitle: subtitle1,
@@ -108,15 +119,15 @@ export default function Hero({ initialSettings }: HeroProps) {
     });
   }
 
-  // Fallback to primary slide if all slides were disabled
+  // Fallback to minimal placeholder ONLY if all custom slides are removed
   const slides = activeSlides.length > 0 ? activeSlides : [
     {
       id: 1,
-      desktopImage: '/images/hero-latest.jpg',
-      mobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
+      desktopImage: desktopImg1 && desktopImg1.trim() !== '' ? desktopImg1 : '',
+      mobileImage: mobileImg1 && mobileImg1.trim() !== '' ? mobileImg1 : '',
       tag: 'FABSTORY BY FASNA',
-      title: 'Where Style Meets Your Story',
-      subtitle: 'Specially curated for Women',
+      title: title1 || 'Where Style Meets Your Story',
+      subtitle: subtitle1 || 'Specially curated for Women',
       primaryCta: { text: 'EXPLORE COLLECTION', href: '/shop' },
       secondaryCta: { text: 'CREATE YOUR LOOK', href: '/custom-made' },
     },
@@ -153,27 +164,35 @@ export default function Hero({ initialSettings }: HeroProps) {
             }`}
           >
             {/* Desktop Banner Image */}
-            <div className="hidden sm:block absolute inset-0">
-              <Image
-                src={slide.desktopImage}
-                alt={slide.title}
-                fill
-                priority={idx === 0}
-                sizes="100vw"
-                className="object-cover object-top sm:object-center"
-              />
-            </div>
+            {slide.desktopImage ? (
+              <div className="hidden sm:block absolute inset-0">
+                <Image
+                  src={slide.desktopImage}
+                  alt={slide.title}
+                  fill
+                  priority={idx === 0}
+                  sizes="100vw"
+                  className="object-cover object-top sm:object-center"
+                />
+              </div>
+            ) : (
+              <div className="hidden sm:block absolute inset-0 bg-gradient-to-r from-[#F8F5EF] via-[#F4EFE6] to-[#EDE7DC]" />
+            )}
             {/* Mobile Banner Image */}
-            <div className="block sm:hidden absolute inset-0">
-              <Image
-                src={slide.mobileImage}
-                alt={slide.title}
-                fill
-                priority={idx === 0}
-                sizes="100vw"
-                className="object-cover object-top"
-              />
-            </div>
+            {slide.mobileImage || slide.desktopImage ? (
+              <div className="block sm:hidden absolute inset-0">
+                <Image
+                  src={slide.mobileImage || slide.desktopImage}
+                  alt={slide.title}
+                  fill
+                  priority={idx === 0}
+                  sizes="100vw"
+                  className="object-cover object-top"
+                />
+              </div>
+            ) : (
+              <div className="block sm:hidden absolute inset-0 bg-gradient-to-b from-[#F8F5EF] to-[#EDE7DC]" />
+            )}
             {/* Soft mobile gradient overlay for 100% crisp text legibility */}
             <div className="absolute inset-0 bg-gradient-to-r from-[#F4EFE6]/95 via-[#F4EFE6]/75 to-transparent lg:hidden" />
           </div>

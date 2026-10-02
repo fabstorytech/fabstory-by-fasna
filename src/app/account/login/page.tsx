@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from 'lucide-react';
-import { getSiteSettings, SiteSettings } from '@/lib/supabase/services';
+import { getSiteSettings, SiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/supabase/services';
 import { supabase } from '@/lib/supabase/client';
 import { BRAND } from '@/lib/constants';
 
@@ -221,15 +221,17 @@ export default function LoginPage() {
   };
 
   // Dynamic Site Settings for Login CMS
-  const [settings, setSettings] = useState<SiteSettings>({
-    id: 'default',
-    heroDesktopImage: '/images/hero-latest.jpg',
-    heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
-    heroTitle: 'Where Style Meets Your Story',
-    heroSubtitle: 'Specially curated for Women',
-    loginImage: '/images/craftsmanship.jpg',
-    loginTitle: 'Where Style\nMeets Your Story',
-    loginSubtitle: 'FABSTORY BY FASNA',
+  const [settings, setSettings] = useState<SiteSettings>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('fabstory_site_settings');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed) return parsed;
+        }
+      } catch (_) {}
+    }
+    return DEFAULT_SITE_SETTINGS;
   });
 
   useEffect(() => {
