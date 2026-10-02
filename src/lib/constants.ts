@@ -119,8 +119,8 @@ export const FOOTER_LINKS = {
 // --- Empty Lists (No Hardcoded Fallback Products/Categories) ---
 
 export const PLACEHOLDER_IMAGES = {
-  hero: '/images/hero-latest.jpg',
-  heroMobile: '/images/mobileview/fabstore-mobilebanner.png',
+  hero: '',
+  heroMobile: '',
   about: '/images/about.jpg',
   craftsmanship: '/images/craftsmanship.jpg',
   customMade: '/images/custom-made.jpg',
