@@ -1,5 +1,8 @@
 import { supabase } from './client';
 import type { Product, Category, Fabric, Order, CustomRequest } from '@/types';
+import { DEFAULT_CATEGORIES } from '@/lib/constants';
+
+export { DEFAULT_CATEGORIES };
 
 export interface SiteSettings {
   id: string;
@@ -7,14 +10,17 @@ export interface SiteSettings {
   heroMobileImage: string;
   heroTitle: string;
   heroSubtitle: string;
+  slide1Active?: boolean;
   heroDesktopImage2?: string;
   heroMobileImage2?: string;
   heroTitle2?: string;
   heroSubtitle2?: string;
+  slide2Active?: boolean;
   heroDesktopImage3?: string;
   heroMobileImage3?: string;
   heroTitle3?: string;
   heroSubtitle3?: string;
+  slide3Active?: boolean;
   loginImage?: string;
   loginTitle?: string;
   loginSubtitle?: string;
@@ -57,14 +63,17 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
   heroTitle: 'Where Style Meets Your Story',
   heroSubtitle: 'Specially curated for Women',
+  slide1Active: true,
   heroDesktopImage2: '/images/mobileview/fabstore-banner2.png',
   heroMobileImage2: '/images/mobileview/fabstore-mobilebanner2.png',
   heroTitle2: 'Crafted with Love & Detail',
   heroSubtitle2: 'Timeless Occasion Wear & Bespoke Couture',
+  slide2Active: true,
   heroDesktopImage3: '/images/mobileview/fabstore-banner3.png',
   heroMobileImage3: '/images/mobileview/fabstore-mobileview3.png',
   heroTitle3: 'Designed for Every Moment',
   heroSubtitle3: 'Curated luxury & handcrafted elegance',
+  slide3Active: true,
   loginImage: '/images/craftsmanship.jpg',
   loginTitle: 'Where Style\nMeets Your Story',
   loginSubtitle: 'FABSTORY BY FASNA',
@@ -97,24 +106,28 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     const mergedSettings: SiteSettings = {
       ...settings,
       id: data.id || 'default',
-      heroDesktopImage: data.hero_desktop_image || settings.heroDesktopImage,
-      heroMobileImage: data.hero_mobile_image || settings.heroMobileImage,
+      heroDesktopImage: data.hero_desktop_image !== undefined ? (data.hero_desktop_image ?? '') : settings.heroDesktopImage,
+      heroMobileImage: data.hero_mobile_image !== undefined ? (data.hero_mobile_image ?? '') : settings.heroMobileImage,
       heroTitle: data.hero_title || settings.heroTitle,
       heroSubtitle: data.hero_subtitle || settings.heroSubtitle,
-      loginImage: data.login_image || settings.loginImage,
+      loginImage: data.login_image !== undefined ? (data.login_image ?? '') : settings.loginImage,
       loginTitle: data.login_title || settings.loginTitle,
       loginSubtitle: data.login_subtitle || settings.loginSubtitle,
     };
 
-    if (data.hero_desktop_image_2) mergedSettings.heroDesktopImage2 = data.hero_desktop_image_2;
-    if (data.hero_mobile_image_2) mergedSettings.heroMobileImage2 = data.hero_mobile_image_2;
+    if (data.slide1_active !== undefined) mergedSettings.slide1Active = Boolean(data.slide1_active);
+
+    if (data.hero_desktop_image_2 !== undefined) mergedSettings.heroDesktopImage2 = data.hero_desktop_image_2 ?? '';
+    if (data.hero_mobile_image_2 !== undefined) mergedSettings.heroMobileImage2 = data.hero_mobile_image_2 ?? '';
     if (data.hero_title_2) mergedSettings.heroTitle2 = data.hero_title_2;
     if (data.hero_subtitle_2) mergedSettings.heroSubtitle2 = data.hero_subtitle_2;
+    if (data.slide2_active !== undefined) mergedSettings.slide2Active = Boolean(data.slide2_active);
 
-    if (data.hero_desktop_image_3) mergedSettings.heroDesktopImage3 = data.hero_desktop_image_3;
-    if (data.hero_mobile_image_3) mergedSettings.heroMobileImage3 = data.hero_mobile_image_3;
+    if (data.hero_desktop_image_3 !== undefined) mergedSettings.heroDesktopImage3 = data.hero_desktop_image_3 ?? '';
+    if (data.hero_mobile_image_3 !== undefined) mergedSettings.heroMobileImage3 = data.hero_mobile_image_3 ?? '';
     if (data.hero_title_3) mergedSettings.heroTitle3 = data.hero_title_3;
     if (data.hero_subtitle_3) mergedSettings.heroSubtitle3 = data.hero_subtitle_3;
+    if (data.slide3_active !== undefined) mergedSettings.slide3Active = Boolean(data.slide3_active);
 
     return mergedSettings;
   } catch (err) {
@@ -143,15 +156,19 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>): Promi
       updated_at: new Date().toISOString(),
     };
 
+    if (settings.slide1Active !== undefined) fullPayload.slide1_active = settings.slide1Active;
+
     if (settings.heroDesktopImage2 !== undefined) fullPayload.hero_desktop_image_2 = settings.heroDesktopImage2;
     if (settings.heroMobileImage2 !== undefined) fullPayload.hero_mobile_image_2 = settings.heroMobileImage2;
     if (settings.heroTitle2 !== undefined) fullPayload.hero_title_2 = settings.heroTitle2;
     if (settings.heroSubtitle2 !== undefined) fullPayload.hero_subtitle_2 = settings.heroSubtitle2;
+    if (settings.slide2Active !== undefined) fullPayload.slide2_active = settings.slide2Active;
 
     if (settings.heroDesktopImage3 !== undefined) fullPayload.hero_desktop_image_3 = settings.heroDesktopImage3;
     if (settings.heroMobileImage3 !== undefined) fullPayload.hero_mobile_image_3 = settings.heroMobileImage3;
     if (settings.heroTitle3 !== undefined) fullPayload.hero_title_3 = settings.heroTitle3;
     if (settings.heroSubtitle3 !== undefined) fullPayload.hero_subtitle_3 = settings.heroSubtitle3;
+    if (settings.slide3Active !== undefined) fullPayload.slide3_active = settings.slide3Active;
 
     if (settings.loginImage !== undefined) fullPayload.login_image = settings.loginImage;
     if (settings.loginTitle !== undefined) fullPayload.login_title = settings.loginTitle;
@@ -267,6 +284,38 @@ export async function createProduct(productData: Partial<Product>): Promise<{ su
   }
 }
 
+export async function updateProduct(
+  productId: string,
+  productData: Partial<Product>
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const updateRow: any = {
+      updated_at: new Date().toISOString(),
+    };
+    if (productData.name !== undefined) updateRow.name = productData.name;
+    if (productData.slug !== undefined) updateRow.slug = productData.slug;
+    if (productData.description !== undefined) updateRow.description = productData.description;
+    if (productData.shortDescription !== undefined) updateRow.short_description = productData.shortDescription;
+    if (productData.price !== undefined) updateRow.price = productData.price;
+    if (productData.compareAtPrice !== undefined) updateRow.compare_at_price = productData.compareAtPrice;
+    if (productData.type !== undefined) updateRow.type = productData.type;
+    if (productData.status !== undefined) updateRow.status = productData.status;
+    if (productData.categoryId !== undefined) updateRow.category_id = productData.categoryId || null;
+    if (productData.images !== undefined) updateRow.images = productData.images;
+    if (productData.sizes !== undefined) updateRow.sizes = productData.sizes;
+    if (productData.stock !== undefined) updateRow.stock = productData.stock;
+    if (productData.isFeatured !== undefined) updateRow.is_featured = productData.isFeatured;
+
+    const { data, error } = await supabase.from('products').update(updateRow).eq('id', productId).select();
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error updating product' };
+  }
+}
+
 export async function deleteProduct(productId: string): Promise<boolean> {
   try {
     const { error } = await supabase.from('products').delete().eq('id', productId);
@@ -287,8 +336,42 @@ export async function getCategories(): Promise<Category[]> {
       .select('*')
       .order('display_order', { ascending: true });
 
-    if (error || !data) {
-      return [];
+    if (error) {
+      console.warn('Supabase getCategories query failed, using defaults:', error.message);
+      return DEFAULT_CATEGORIES;
+    }
+
+    if (!data || data.length === 0) {
+      // Auto-populate default categories into Supabase so they are immediately persisted and editable with real DB IDs
+      try {
+        const { data: inserted, error: insertError } = await supabase
+          .from('categories')
+          .upsert(
+            DEFAULT_CATEGORIES.map((c) => ({
+              slug: c.slug,
+              name: c.name,
+              description: c.description,
+              image: c.image,
+              display_order: c.order,
+            })),
+            { onConflict: 'slug' }
+          )
+          .select();
+
+        if (!insertError && inserted && inserted.length > 0) {
+          return inserted.map((cat) => ({
+            id: cat.id,
+            slug: cat.slug,
+            name: cat.name,
+            description: cat.description || '',
+            image: cat.image || '/images/placeholder.jpg',
+            order: cat.display_order || 1,
+          }));
+        }
+      } catch (seedErr) {
+        console.warn('Auto-seed default categories failed:', seedErr);
+      }
+      return DEFAULT_CATEGORIES;
     }
 
     return data.map((cat) => ({
@@ -300,7 +383,110 @@ export async function getCategories(): Promise<Category[]> {
       order: cat.display_order || 1,
     }));
   } catch (err) {
-    return [];
+    return DEFAULT_CATEGORIES;
+  }
+}
+
+export async function seedDefaultCategories(): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const rows = DEFAULT_CATEGORIES.map((cat) => ({
+      slug: cat.slug,
+      name: cat.name,
+      description: cat.description,
+      image: cat.image,
+      display_order: cat.order,
+    }));
+
+    const { data, error } = await supabase
+      .from('categories')
+      .upsert(rows, { onConflict: 'slug' })
+      .select();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error seeding default categories' };
+  }
+}
+
+export async function createCategory(
+  catData: Partial<Category>
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const slug = catData.name
+      ? catData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+      : `cat-${Date.now()}`;
+
+    const newRow = {
+      name: catData.name,
+      slug: catData.slug || slug,
+      description: catData.description || '',
+      image: catData.image || '/images/placeholder.jpg',
+      display_order: catData.order || 1,
+    };
+
+    const { data, error } = await supabase.from('categories').insert([newRow]).select();
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error creating category' };
+  }
+}
+
+export async function updateCategory(
+  categoryId: string,
+  catData: Partial<Category>
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const updateRow: any = {
+      updated_at: new Date().toISOString(),
+    };
+    if (catData.name !== undefined) updateRow.name = catData.name;
+    if (catData.slug !== undefined) updateRow.slug = catData.slug;
+    if (catData.description !== undefined) updateRow.description = catData.description;
+    if (catData.image !== undefined) updateRow.image = catData.image;
+    if (catData.order !== undefined) updateRow.display_order = catData.order;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(categoryId);
+
+    let res;
+    if (isUuid) {
+      res = await supabase.from('categories').update(updateRow).eq('id', categoryId).select();
+    } else {
+      const slugKey = catData.slug || categoryId;
+      res = await supabase.from('categories').upsert({
+        ...updateRow,
+        slug: slugKey,
+        name: catData.name || '',
+        description: catData.description || '',
+        image: catData.image || '/images/placeholder.jpg',
+        display_order: catData.order || 1,
+      }, { onConflict: 'slug' }).select();
+    }
+
+    if (res.error) {
+      return { success: false, error: res.error.message };
+    }
+    return { success: true, data: res.data };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error updating category' };
+  }
+}
+
+export async function deleteCategory(categoryId: string): Promise<boolean> {
+  try {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(categoryId);
+    const query = isUuid
+      ? supabase.from('categories').delete().eq('id', categoryId)
+      : supabase.from('categories').delete().eq('slug', categoryId);
+    const { error } = await query;
+    return !error;
+  } catch (err) {
+    return false;
   }
 }
 

@@ -4,11 +4,18 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { BRAND } from '@/lib/constants';
-import type { Product } from '@/types';
+import type { Product, Category } from '@/types';
 import {
   getProducts,
   createProduct,
+  updateProduct,
   deleteProduct,
+  getCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  seedDefaultCategories,
+  DEFAULT_CATEGORIES,
   getOrdersFromSupabase,
   uploadImageToCloudinary,
   getSiteSettings,
@@ -19,6 +26,7 @@ import {
 import { supabase } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import AdminLoginForm from '@/components/admin/AdminLoginForm';
+import BannerImageUploader from '@/components/admin/BannerImageUploader';
 import {
   ShoppingBag,
   Scissors,
@@ -44,17 +52,29 @@ import {
   User as UserIcon,
   ShieldCheck,
   Loader2,
+  Pencil,
+  Menu,
+  Tag,
+  FolderPlus,
 } from 'lucide-react';
+
+export interface ProductImageSlot {
+  file: File | null;
+  preview: string | null;
+  existingUrl: string | null;
+}
 
 export default function AdminDashboardPage() {
   const [adminUser, setAdminUser] = useState<SupabaseUser | null>(null);
   const [authChecking, setAuthChecking] = useState<boolean>(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'products' | 'site_cms' | 'orders'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'products' | 'categories' | 'site_cms' | 'orders'>('overview');
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -84,15 +104,38 @@ export default function AdminDashboardPage() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // New Product Form State
+  // Category CMS State
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryName, setCategoryName] = useState('');
+  const [categorySlug, setCategorySlug] = useState('');
+  const [categoryDescription, setCategoryDescription] = useState('');
+  const [categoryOrder, setCategoryOrder] = useState<number>(1);
+  const [categoryFile, setCategoryFile] = useState<File | null>(null);
+  const [categoryPreview, setCategoryPreview] = useState<string | null>(null);
+  const [categoryExistingImage, setCategoryExistingImage] = useState<string>('');
+  const [isCategoryUploading, setIsCategoryUploading] = useState(false);
+  const [categoryMessage, setCategoryMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isCategoryDragging, setIsCategoryDragging] = useState(false);
+  const [isRestoringCategories, setIsRestoringCategories] = useState(false);
+
+  // Product Form State (Add & Edit)
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [newProductName, setNewProductName] = useState('');
   const [newProductPrice, setNewProductPrice] = useState('');
   const [newProductComparePrice, setNewProductComparePrice] = useState('');
   const [newProductType, setNewProductType] = useState<'CUSTOM' | 'READY_STOCK' | 'FABRIC'>('CUSTOM');
+  const [newProductCategory, setNewProductCategory] = useState<string>('');
   const [newProductDescription, setNewProductDescription] = useState('');
   const [newProductStock, setNewProductStock] = useState('50');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+
+  // 3 Product Image Slots (1 Main Image + 2 Sub Images)
+  const [imageSlots, setImageSlots] = useState<ProductImageSlot[]>([
+    { file: null, preview: null, existingUrl: null },
+    { file: null, preview: null, existingUrl: null },
+    { file: null, preview: null, existingUrl: null },
+  ]);
+  const [slotDragging, setSlotDragging] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [formMessage, setFormMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
@@ -164,28 +207,46 @@ export default function AdminDashboardPage() {
 
   const loadAdminData = async () => {
     setLoading(true);
-    const [fetchedProducts, fetchedOrders, fetchedSettings] = await Promise.all([
+    const [fetchedProducts, fetchedOrders, fetchedSettings, fetchedCategories] = await Promise.all([
       getProducts(),
       getOrdersFromSupabase(),
       getSiteSettings(),
+      getCategories(),
     ]);
     setProducts(fetchedProducts);
     setOrders(fetchedOrders);
     setSiteSettings(fetchedSettings);
+    setCategories(fetchedCategories && fetchedCategories.length > 0 ? fetchedCategories : DEFAULT_CATEGORIES);
     setLoading(false);
   };
 
-  // Handle File Selection & Preview
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setSelectedFile(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setFilePreview(reader.result as string);
-      reader.readAsDataURL(file);
-    } else {
-      setFilePreview(null);
+  // Product 3-Slot Image Handlers
+  const handleSlotFileChange = (index: number, file: File | null) => {
+    if (!file) {
+      setImageSlots((prev) => {
+        const next = [...prev];
+        next[index] = { file: null, preview: null, existingUrl: null };
+        return next;
+      });
+      return;
     }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageSlots((prev) => {
+        const next = [...prev];
+        next[index] = { file, preview: reader.result as string, existingUrl: null };
+        return next;
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSlotRemove = (index: number) => {
+    setImageSlots((prev) => {
+      const next = [...prev];
+      next[index] = { file: null, preview: null, existingUrl: null };
+      return next;
+    });
   };
 
   const handleSaveSiteSettings = async (e: React.FormEvent) => {
@@ -195,11 +256,11 @@ export default function AdminDashboardPage() {
 
     let updatedDesktopUrl = siteSettings.heroDesktopImage;
     let updatedMobileUrl = siteSettings.heroMobileImage;
-    let updatedDesktop2Url = siteSettings.heroDesktopImage2 || DEFAULT_SITE_SETTINGS.heroDesktopImage2;
-    let updatedMobile2Url = siteSettings.heroMobileImage2 || DEFAULT_SITE_SETTINGS.heroMobileImage2;
-    let updatedDesktop3Url = siteSettings.heroDesktopImage3 || DEFAULT_SITE_SETTINGS.heroDesktopImage3;
-    let updatedMobile3Url = siteSettings.heroMobileImage3 || DEFAULT_SITE_SETTINGS.heroMobileImage3;
-    let updatedLoginUrl = siteSettings.loginImage;
+    let updatedDesktop2Url = siteSettings.heroDesktopImage2 ?? '';
+    let updatedMobile2Url = siteSettings.heroMobileImage2 ?? '';
+    let updatedDesktop3Url = siteSettings.heroDesktopImage3 ?? '';
+    let updatedMobile3Url = siteSettings.heroMobileImage3 ?? '';
+    let updatedLoginUrl = siteSettings.loginImage ?? '';
 
     // Slide 1
     if (desktopHeroFile) {
@@ -298,7 +359,45 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleCreateProduct = async (e: React.FormEvent) => {
+  const handleOpenAddProduct = () => {
+    setEditingProductId(null);
+    setNewProductName('');
+    setNewProductPrice('');
+    setNewProductComparePrice('');
+    setNewProductType('CUSTOM');
+    setNewProductCategory(categories[0]?.id || '');
+    setNewProductDescription('');
+    setNewProductStock('50');
+    setImageSlots([
+      { file: null, preview: null, existingUrl: null },
+      { file: null, preview: null, existingUrl: null },
+      { file: null, preview: null, existingUrl: null },
+    ]);
+    setFormMessage(null);
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenEditProduct = (prod: Product) => {
+    setEditingProductId(prod.id);
+    setNewProductName(prod.name);
+    setNewProductPrice(String(prod.price));
+    setNewProductComparePrice(prod.compareAtPrice ? String(prod.compareAtPrice) : '');
+    setNewProductType(prod.type);
+    setNewProductCategory(prod.categoryId || '');
+    setNewProductDescription(prod.description || '');
+    setNewProductStock(String(prod.stock ?? 50));
+
+    const existingImages = prod.images || [];
+    setImageSlots([
+      { file: null, preview: null, existingUrl: existingImages[0]?.url || null },
+      { file: null, preview: null, existingUrl: existingImages[1]?.url || null },
+      { file: null, preview: null, existingUrl: existingImages[2]?.url || null },
+    ]);
+    setFormMessage(null);
+    setIsAddModalOpen(true);
+  };
+
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProductName || !newProductPrice) {
       setFormMessage({ type: 'error', text: 'Please fill in Product Name and Price.' });
@@ -308,48 +407,93 @@ export default function AdminDashboardPage() {
     setIsUploading(true);
     setFormMessage(null);
 
-    let imageUrl = '/images/placeholder.jpg';
-    if (selectedFile) {
-      const uploadedCloudinaryUrl = await uploadImageToCloudinary(selectedFile);
-      if (uploadedCloudinaryUrl) {
-        imageUrl = uploadedCloudinaryUrl;
-      } else {
-        setFormMessage({ type: 'error', text: 'Failed to upload photo to Cloudinary.' });
-        setIsUploading(false);
-        return;
+    // Upload newly selected files across 3 slots to Cloudinary
+    const finalImages: { id: string; url: string; alt: string; order: number }[] = [];
+
+    for (let i = 0; i < 3; i++) {
+      const slot = imageSlots[i];
+      let url = slot?.existingUrl;
+      if (slot?.file) {
+        const uploadedUrl = await uploadImageToCloudinary(slot.file);
+        if (uploadedUrl) {
+          url = uploadedUrl;
+        } else {
+          setFormMessage({ type: 'error', text: `Failed to upload image slot ${i + 1} to Cloudinary.` });
+          setIsUploading(false);
+          return;
+        }
+      }
+      if (url) {
+        finalImages.push({
+          id: `img-${Date.now()}-${i}`,
+          url,
+          alt: `${newProductName} view ${i + 1}`,
+          order: i + 1,
+        });
       }
     }
 
-    const res = await createProduct({
-      name: newProductName,
-      price: Number(newProductPrice),
-      compareAtPrice: newProductComparePrice ? Number(newProductComparePrice) : undefined,
-      type: newProductType,
-      description: newProductDescription || 'Handcrafted outfit curated with perfection by Fabstory by Fasna.',
-      shortDescription: newProductName,
-      stock: Number(newProductStock),
-      images: [{ id: `img-${Date.now()}`, url: imageUrl, alt: newProductName, order: 1 }],
-      status: 'PUBLISHED',
-      isFeatured: true,
-    });
+    if (finalImages.length === 0) {
+      finalImages.push({
+        id: `img-${Date.now()}-0`,
+        url: '/images/placeholder.jpg',
+        alt: newProductName,
+        order: 1,
+      });
+    }
 
-    setIsUploading(false);
+    if (editingProductId) {
+      const res = await updateProduct(editingProductId, {
+        name: newProductName,
+        price: Number(newProductPrice),
+        compareAtPrice: newProductComparePrice ? Number(newProductComparePrice) : undefined,
+        type: newProductType,
+        categoryId: newProductCategory || undefined,
+        description: newProductDescription,
+        shortDescription: newProductName,
+        stock: Number(newProductStock),
+        images: finalImages,
+      });
 
-    if (res.success) {
-      setFormMessage({ type: 'success', text: 'Product & photo uploaded to Cloudinary successfully!' });
-      setNewProductName('');
-      setNewProductPrice('');
-      setNewProductComparePrice('');
-      setNewProductDescription('');
-      setSelectedFile(null);
-      setFilePreview(null);
-      setTimeout(() => {
-        setIsAddModalOpen(false);
-        setFormMessage(null);
-        loadAdminData();
-      }, 1200);
+      setIsUploading(false);
+
+      if (res.success) {
+        setFormMessage({ type: 'success', text: 'Product updated successfully!' });
+        setTimeout(() => {
+          setIsAddModalOpen(false);
+          setFormMessage(null);
+          loadAdminData();
+        }, 1000);
+      } else {
+        setFormMessage({ type: 'error', text: res.error || 'Failed to update product.' });
+      }
     } else {
-      setFormMessage({ type: 'error', text: res.error || 'Failed to create product' });
+      const res = await createProduct({
+        name: newProductName,
+        price: Number(newProductPrice),
+        compareAtPrice: newProductComparePrice ? Number(newProductComparePrice) : undefined,
+        type: newProductType,
+        categoryId: newProductCategory || undefined,
+        description: newProductDescription || 'Handcrafted outfit curated with perfection by Fabstory by Fasna.',
+        shortDescription: newProductName,
+        stock: Number(newProductStock),
+        images: finalImages,
+        status: 'PUBLISHED',
+        isFeatured: true,
+      });
+
+      setIsUploading(false);
+
+      if (res.success) {
+        setFormMessage({ type: 'success', text: 'Product & 3 photos saved to Cloudinary & DB successfully!' });
+        setTimeout(() => {
+          setIsAddModalOpen(false);
+          setFormMessage(null);
+          loadAdminData();
+        }, 1000);
+      } else {
+        setFormMessage({ type: 'error', text: res.error || 'Failed to create product.' });
+      }
     }
   };
 
@@ -357,6 +501,106 @@ export default function AdminDashboardPage() {
     if (confirm('Are you sure you want to delete this product?')) {
       await deleteProduct(id);
       loadAdminData();
+    }
+  };
+
+  // Category CMS Handlers
+  const handleOpenAddCategory = () => {
+    setEditingCategory(null);
+    setCategoryName('');
+    setCategorySlug('');
+    setCategoryDescription('');
+    setCategoryOrder(categories.length + 1);
+    setCategoryFile(null);
+    setCategoryPreview(null);
+    setCategoryExistingImage('');
+    setCategoryMessage(null);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleOpenEditCategory = (cat: Category) => {
+    setEditingCategory(cat);
+    setCategoryName(cat.name);
+    setCategorySlug(cat.slug);
+    setCategoryDescription(cat.description || '');
+    setCategoryOrder(cat.order || 1);
+    setCategoryFile(null);
+    setCategoryPreview(null);
+    setCategoryExistingImage(cat.image || '');
+    setCategoryMessage(null);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryName.trim()) {
+      setCategoryMessage({ type: 'error', text: 'Please enter category name.' });
+      return;
+    }
+    setIsCategoryUploading(true);
+    setCategoryMessage(null);
+
+    let imageUrl = categoryExistingImage || '/images/placeholder.jpg';
+    if (categoryFile) {
+      const uploadedUrl = await uploadImageToCloudinary(categoryFile);
+      if (uploadedUrl) {
+        imageUrl = uploadedUrl;
+      } else {
+        setCategoryMessage({ type: 'error', text: 'Failed to upload category image to Cloudinary.' });
+        setIsCategoryUploading(false);
+        return;
+      }
+    }
+
+    const payload: Partial<Category> = {
+      name: categoryName.trim(),
+      slug: categorySlug.trim() || categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
+      description: categoryDescription.trim(),
+      image: imageUrl,
+      order: Number(categoryOrder) || 1,
+    };
+
+    let res;
+    if (editingCategory) {
+      res = await updateCategory(editingCategory.id, payload);
+    } else {
+      res = await createCategory(payload);
+    }
+    setIsCategoryUploading(false);
+
+    if (res.success) {
+      setCategoryMessage({ type: 'success', text: `Category ${editingCategory ? 'updated' : 'created'} successfully!` });
+      setTimeout(() => {
+        setIsCategoryModalOpen(false);
+        setCategoryMessage(null);
+        loadAdminData();
+      }, 1000);
+    } else {
+      setCategoryMessage({ type: 'error', text: res.error || 'Failed to save category.' });
+    }
+  };
+
+  const handleDeleteCategory = async (id: string, name: string) => {
+    if (confirm(`Are you sure you want to delete category "${name}"? This will not delete products in this category.`)) {
+      const ok = await deleteCategory(id);
+      if (ok) {
+        loadAdminData();
+      } else {
+        alert('Failed to delete category');
+      }
+    }
+  };
+
+  const handleRestoreDefaultCategories = async () => {
+    if (confirm('Restore / Sync the 4 curated homepage categories (Custom Made Outfits, Ready to Ship, Fabrics by the Meter, Accessories & More)?')) {
+      setIsRestoringCategories(true);
+      const res = await seedDefaultCategories();
+      setIsRestoringCategories(false);
+      if (res.success) {
+        await loadAdminData();
+      } else {
+        alert(res.error || 'Failed to restore default categories');
+      }
     }
   };
 
@@ -405,8 +649,177 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen flex bg-[#F8F5EF] text-[#243234]">
-      {/* Admin Sidebar */}
-      <aside className="w-64 bg-white border-r border-[#E5E0D8] p-6 space-y-8 hidden md:block shrink-0">
+      {/* Mobile Drawer Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="relative w-72 max-w-[80vw] bg-white h-full p-6 flex flex-col justify-between shadow-2xl z-10 overflow-y-auto">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden border border-[#C7A66A]/40 bg-white p-0.5 shadow-2xs">
+                    <Image src="/logo.png" alt={BRAND.fullName} fill className="object-contain p-0.5" />
+                  </div>
+                  <div>
+                    <span className="font-serif text-sm font-semibold text-[#23484A] block leading-tight">
+                      {BRAND.name} CMS
+                    </span>
+                    <span className="text-[9px] uppercase tracking-[0.2em] text-[#C7A66A] block font-medium">
+                      Admin Portal
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-1.5 text-[#6F7775] hover:text-[#23484A] rounded-xs"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <nav className="space-y-1.5 text-xs font-semibold uppercase tracking-wider">
+                <button
+                  onClick={() => {
+                    setActiveTab('overview');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xs transition-colors flex items-center gap-2.5 ${
+                    activeTab === 'overview'
+                      ? 'bg-[#23484A] text-white shadow-2xs'
+                      : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A]'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('analytics');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xs transition-colors flex items-center gap-2.5 ${
+                    activeTab === 'analytics'
+                      ? 'bg-[#23484A] text-white shadow-2xs'
+                      : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A]'
+                  }`}
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Analytics & Sales</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('products');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xs transition-colors flex items-center justify-between ${
+                    activeTab === 'products'
+                      ? 'bg-[#23484A] text-white shadow-2xs'
+                      : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>Products CMS</span>
+                  </div>
+                  <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full">{products.length}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('categories');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xs transition-colors flex items-center justify-between ${
+                    activeTab === 'categories'
+                      ? 'bg-[#23484A] text-white shadow-2xs'
+                      : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Layers className="w-4 h-4" />
+                    <span>Categories CMS</span>
+                  </div>
+                  <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full">{categories.length}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('site_cms');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xs transition-colors flex items-center gap-2.5 ${
+                    activeTab === 'site_cms'
+                      ? 'bg-[#23484A] text-white shadow-2xs'
+                      : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A]'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  <span>Hero & Banners</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('orders');
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xs transition-colors flex items-center justify-between ${
+                    activeTab === 'orders'
+                      ? 'bg-[#23484A] text-white shadow-2xs'
+                      : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Scissors className="w-4 h-4" />
+                    <span>Orders</span>
+                  </div>
+                  <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full">{orders.length}</span>
+                </button>
+
+                <Link
+                  href="/"
+                  target="_blank"
+                  className="block px-3.5 py-2.5 text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A] rounded-xs mt-6 pt-3 border-t border-[#E5E0D8]"
+                >
+                  ← View Live Store
+                </Link>
+              </nav>
+            </div>
+
+            <div className="pt-4 border-t border-[#E5E0D8] space-y-3">
+              <div className="flex items-center gap-2.5 px-1 py-1">
+                <div className="w-8 h-8 rounded-full bg-[#23484A]/10 text-[#23484A] flex items-center justify-center shrink-0">
+                  <UserIcon className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[11px] font-semibold text-[#23484A] truncate block">
+                    {adminUser?.email || 'Admin'}
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[9px] text-emerald-700 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Active Session
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-3.5 py-2 rounded-xs transition-colors flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-red-600 hover:bg-red-50 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Sidebar — Sticky & Scrollable */}
+      <aside className="w-64 bg-white border-r border-[#E5E0D8] p-6 space-y-8 hidden md:flex md:flex-col md:sticky md:top-0 md:h-screen md:overflow-y-auto shrink-0 z-30">
         <div className="flex items-center gap-3">
           <div className="relative w-10 h-10 rounded-full overflow-hidden border border-[#C7A66A]/40 bg-white p-0.5 shadow-2xs">
             <Image src="/logo.png" alt={BRAND.fullName} fill className="object-contain p-0.5" />
@@ -421,7 +834,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        <nav className="space-y-1 text-xs font-semibold uppercase tracking-wider">
+        <nav className="space-y-1 text-xs font-semibold uppercase tracking-wider flex-1">
           <button
             onClick={() => setActiveTab('overview')}
             className={`w-full text-left px-3.5 py-2.5 rounded-xs transition-colors flex items-center gap-2 ${
@@ -462,6 +875,21 @@ export default function AdminDashboardPage() {
           </button>
 
           <button
+            onClick={() => setActiveTab('categories')}
+            className={`w-full text-left px-3.5 py-2.5 rounded-xs transition-colors flex items-center justify-between ${
+              activeTab === 'categories'
+                ? 'bg-[#23484A] text-white shadow-2xs'
+                : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A]'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Layers className="w-4 h-4" />
+              <span>Categories CMS</span>
+            </div>
+            <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full">{categories.length}</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('site_cms')}
             className={`w-full text-left px-3.5 py-2.5 rounded-xs transition-colors flex items-center gap-2 ${
               activeTab === 'site_cms'
@@ -490,6 +918,7 @@ export default function AdminDashboardPage() {
 
           <Link
             href="/"
+            target="_blank"
             className="block px-3.5 py-2.5 text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A] rounded-xs mt-8 pt-4 border-t border-[#E5E0D8]"
           >
             ← View Live Store
@@ -527,18 +956,29 @@ export default function AdminDashboardPage() {
       <main className="flex-1 p-3 sm:p-6 md:p-8 space-y-4 sm:space-y-6 overflow-y-auto">
         {/* Top Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 bg-white p-3.5 sm:p-6 border border-[#E5E0D8] rounded-2xs shadow-2xs">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-serif text-xl sm:text-2xl md:text-3xl text-[#23484A]">
-                Fabstory Store Management
-              </h1>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#003B75]/10 text-[#003B75] px-2 py-0.5 rounded-full">
-                <Cloud className="w-3 h-3" /> Cloudinary (`jwter84c`)
-              </span>
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex items-center gap-2.5">
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="md:hidden p-2 border border-[#E5E0D8] text-[#23484A] hover:bg-[#F8F5EF] rounded-xs cursor-pointer"
+                title="Open Navigation"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="font-serif text-xl sm:text-2xl md:text-3xl text-[#23484A]">
+                    Fabstory Store Management
+                  </h1>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#003B75]/10 text-[#003B75] px-2 py-0.5 rounded-full">
+                    <Cloud className="w-3 h-3" /> Cloudinary (`jwter84c`)
+                  </span>
+                </div>
+                <p className="text-[11px] sm:text-xs text-[#6F7775] mt-1">
+                  Live Supabase database + Cloudinary image uploads. Analytics & store CMS portal.
+                </p>
+              </div>
             </div>
-            <p className="text-[11px] sm:text-xs text-[#6F7775] mt-1">
-              Live Supabase database + Cloudinary image uploads. Analytics & store CMS portal.
-            </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-between sm:justify-end pt-1 sm:pt-0 border-t sm:border-t-0 border-[#E5E0D8]">
@@ -558,11 +998,19 @@ export default function AdminDashboardPage() {
             </button>
 
             <button
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={handleOpenAddProduct}
               className="btn bg-[#23484A] hover:bg-[#1A3536] text-white text-xs font-semibold px-3.5 py-2 rounded-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span>Add Product</span>
+            </button>
+
+            <button
+              onClick={handleOpenAddCategory}
+              className="btn border border-[#23484A] text-[#23484A] hover:bg-[#23484A] hover:text-white text-xs font-semibold px-3 py-2 rounded-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
+            >
+              <FolderPlus className="w-4 h-4" />
+              <span className="hidden xs:inline">Add Category</span>
             </button>
 
             <Link
@@ -586,85 +1034,106 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Mobile Navigation Tab Bar — Fixed 5-column grid, NO horizontal scrolling */}
+        {/* Mobile Navigation Tab Bar — 6-Tab Strip */}
         <div className="md:hidden bg-white/95 backdrop-blur-xs border border-[#E5E0D8] p-1 rounded-2xs shadow-2xs sticky top-2 z-30">
-          <div className="grid grid-cols-5 gap-1 text-center">
+          <div className="grid grid-cols-6 gap-0.5 text-center">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`py-2 px-1 rounded-xs flex flex-col items-center justify-center gap-1 transition-all ${
+              className={`py-1.5 px-0.5 rounded-xs flex flex-col items-center justify-center gap-1 transition-all ${
                 activeTab === 'overview'
                   ? 'bg-[#23484A] text-white shadow-2xs font-bold'
                   : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A] font-medium'
               }`}
             >
-              <BarChart3 className="w-4 h-4 shrink-0" />
-              <span className="text-[10px] leading-none tracking-tight">Overview</span>
+              <BarChart3 className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-[9px] leading-none tracking-tight">Overview</span>
             </button>
 
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`py-2 px-1 rounded-xs flex flex-col items-center justify-center gap-1 transition-all ${
+              className={`py-1.5 px-0.5 rounded-xs flex flex-col items-center justify-center gap-1 transition-all ${
                 activeTab === 'analytics'
                   ? 'bg-[#23484A] text-white shadow-2xs font-bold'
                   : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A] font-medium'
               }`}
             >
-              <TrendingUp className="w-4 h-4 shrink-0" />
-              <span className="text-[10px] leading-none tracking-tight">Analytics</span>
+              <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-[9px] leading-none tracking-tight">Analytics</span>
             </button>
 
             <button
               onClick={() => setActiveTab('products')}
-              className={`py-2 px-1 rounded-xs flex flex-col items-center justify-center gap-1 transition-all relative ${
+              className={`py-1.5 px-0.5 rounded-xs flex flex-col items-center justify-center gap-1 transition-all relative ${
                 activeTab === 'products'
                   ? 'bg-[#23484A] text-white shadow-2xs font-bold'
                   : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A] font-medium'
               }`}
             >
               <div className="relative">
-                <ShoppingBag className="w-4 h-4 shrink-0" />
+                <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
                 {products.length > 0 && (
-                  <span className={`absolute -top-1 -right-2 text-[8px] px-1 py-0.2 rounded-full leading-none ${
+                  <span className={`absolute -top-1 -right-2 text-[7px] px-1 py-0.2 rounded-full leading-none ${
                     activeTab === 'products' ? 'bg-[#C7A66A] text-[#1A3536] font-bold' : 'bg-[#23484A] text-white font-semibold'
                   }`}>
                     {products.length}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] leading-none tracking-tight">Products</span>
+              <span className="text-[9px] leading-none tracking-tight">Products</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('site_cms')}
-              className={`py-2 px-1 rounded-xs flex flex-col items-center justify-center gap-1 transition-all ${
-                activeTab === 'site_cms'
+              onClick={() => setActiveTab('categories')}
+              className={`py-1.5 px-0.5 rounded-xs flex flex-col items-center justify-center gap-1 transition-all relative ${
+                activeTab === 'categories'
                   ? 'bg-[#23484A] text-white shadow-2xs font-bold'
                   : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A] font-medium'
               }`}
             >
-              <ImageIcon className="w-4 h-4 shrink-0" />
-              <span className="text-[10px] leading-none tracking-tight">Banners</span>
+              <div className="relative">
+                <Layers className="w-3.5 h-3.5 shrink-0" />
+                {categories.length > 0 && (
+                  <span className={`absolute -top-1 -right-2 text-[7px] px-1 py-0.2 rounded-full leading-none ${
+                    activeTab === 'categories' ? 'bg-[#C7A66A] text-[#1A3536] font-bold' : 'bg-[#23484A] text-white font-semibold'
+                  }`}>
+                    {categories.length}
+                  </span>
+                )}
+              </div>
+              <span className="text-[9px] leading-none tracking-tight">Categories</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('site_cms')}
+              className={`py-1.5 px-0.5 rounded-xs flex flex-col items-center justify-center gap-1 transition-all ${
+                activeTab === 'site_cms'
+                  ? 'bg-[#23484A] text-white shadow-2xs'
+                  : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A] font-medium'
+              }`}
+            >
+              <ImageIcon className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-[9px] leading-none tracking-tight">Banners</span>
             </button>
 
             <button
               onClick={() => setActiveTab('orders')}
-              className={`py-2 px-1 rounded-xs flex flex-col items-center justify-center gap-1 transition-all relative ${
+              className={`py-1.5 px-0.5 rounded-xs flex flex-col items-center justify-center gap-1 transition-all relative ${
                 activeTab === 'orders'
                   ? 'bg-[#23484A] text-white shadow-2xs font-bold'
                   : 'text-[#6F7775] hover:bg-[#F8F5EF] hover:text-[#23484A] font-medium'
               }`}
             >
               <div className="relative">
-                <Scissors className="w-4 h-4 shrink-0" />
+                <Scissors className="w-3.5 h-3.5 shrink-0" />
                 {orders.length > 0 && (
-                  <span className={`absolute -top-1 -right-2 text-[8px] px-1 py-0.2 rounded-full leading-none ${
+                  <span className={`absolute -top-1 -right-2 text-[7px] px-1 py-0.2 rounded-full leading-none ${
                     activeTab === 'orders' ? 'bg-[#C7A66A] text-[#1A3536] font-bold' : 'bg-[#23484A] text-white font-semibold'
                   }`}>
                     {orders.length}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] leading-none tracking-tight">Orders</span>
+              <span className="text-[9px] leading-none tracking-tight">Orders</span>
             </button>
           </div>
         </div>
@@ -877,7 +1346,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <button
-                onClick={() => setIsAddModalOpen(true)}
+                onClick={handleOpenAddProduct}
                 className="btn bg-[#23484A] hover:bg-[#1A3536] text-white text-xs font-semibold px-4 py-2 rounded-xs flex items-center gap-1.5 shadow-2xs transition-colors self-start sm:self-auto cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -918,8 +1387,8 @@ export default function AdminDashboardPage() {
                 <ShoppingBag className="w-8 h-8 text-[#C7A66A] mx-auto" />
                 <p className="text-xs text-[#6F7775]">No matching products found.</p>
                 <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="btn bg-[#23484A] text-white text-xs font-semibold px-4 py-2 rounded-xs inline-flex items-center gap-1.5"
+                  onClick={handleOpenAddProduct}
+                  className="btn bg-[#23484A] text-white text-xs font-semibold px-4 py-2 rounded-xs inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Upload Product to Cloudinary</span>
@@ -929,51 +1398,73 @@ export default function AdminDashboardPage() {
               <>
                 {/* Mobile Responsive Aligned Cards Grid (< md) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:hidden">
-                  {filteredProducts.map((prod) => (
-                    <div
-                      key={prod.id}
-                      className="bg-[#F8F5EF] border border-[#E5E0D8] p-3 rounded-2xs flex items-center justify-between gap-3 shadow-2xs hover:border-[#23484A]/40 transition-colors"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="relative w-14 h-18 bg-white overflow-hidden rounded-xs border border-[#E5E0D8] shrink-0">
-                          <Image
-                            src={prod.images[0]?.url || '/images/placeholder.jpg'}
-                            alt={prod.name}
-                            fill
-                            className="object-cover object-top"
-                          />
+                  {filteredProducts.map((prod) => {
+                    const assignedCat = categories.find((c) => c.id === prod.categoryId || c.slug === prod.categoryId);
+                    return (
+                      <div
+                        key={prod.id}
+                        className="bg-[#F8F5EF] border border-[#E5E0D8] p-3 rounded-2xs flex items-center justify-between gap-3 shadow-2xs hover:border-[#23484A]/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="relative w-14 h-18 bg-white overflow-hidden rounded-xs border border-[#E5E0D8] shrink-0">
+                            <Image
+                              src={prod.images[0]?.url || '/images/placeholder.jpg'}
+                              alt={prod.name}
+                              fill
+                              className="object-cover object-top"
+                            />
+                            {prod.images && prod.images.length > 1 && (
+                              <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] px-1 rounded-2xs font-semibold">
+                                {prod.images.length} imgs
+                              </span>
+                            )}
+                          </div>
+                          <div className="min-w-0 space-y-0.5">
+                            <div className="flex items-center gap-1 flex-wrap">
+                              <span className="text-[9px] font-bold text-[#C7A66A] uppercase tracking-wider">
+                                {prod.type}
+                              </span>
+                              {assignedCat && (
+                                <span className="text-[9px] bg-[#C7A66A]/15 text-[#8C6D37] px-1.5 py-0.2 rounded-2xs font-medium">
+                                  {assignedCat.name}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-semibold text-xs text-[#243234] truncate" title={prod.name}>
+                              {prod.name}
+                            </h4>
+                            <p className="text-xs font-bold text-[#23484A]">₹ {prod.price.toLocaleString('en-IN')}</p>
+                            <span className="text-[10px] text-[#6F7775] block">{prod.stock || 50} in stock</span>
+                          </div>
                         </div>
-                        <div className="min-w-0 space-y-0.5">
-                          <span className="text-[9px] font-bold text-[#C7A66A] uppercase tracking-wider block">
-                            {prod.type}
-                          </span>
-                          <h4 className="font-semibold text-xs text-[#243234] truncate" title={prod.name}>
-                            {prod.name}
-                          </h4>
-                          <p className="text-xs font-bold text-[#23484A]">₹ {prod.price.toLocaleString('en-IN')}</p>
-                          <span className="text-[10px] text-[#6F7775] block">{prod.stock || 50} in stock</span>
-                        </div>
-                      </div>
 
-                      <div className="flex flex-col gap-1.5 shrink-0">
-                        <Link
-                          href={`/shop/${prod.slug}`}
-                          target="_blank"
-                          className="p-1.5 bg-white border border-[#E5E0D8] text-[#6F7775] hover:text-[#23484A] rounded-xs flex items-center justify-center transition-colors"
-                          title="View on store"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Link>
-                        <button
-                          onClick={() => handleDeleteProduct(prod.id)}
-                          className="p-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-xs flex items-center justify-center transition-colors"
-                          title="Delete product"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex flex-col gap-1.5 shrink-0">
+                          <button
+                            onClick={() => handleOpenEditProduct(prod)}
+                            className="p-1.5 bg-white border border-[#23484A]/30 text-[#23484A] hover:bg-[#23484A] hover:text-white rounded-xs flex items-center justify-center transition-colors cursor-pointer"
+                            title="Edit product"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <Link
+                            href={`/shop/${prod.slug}`}
+                            target="_blank"
+                            className="p-1.5 bg-white border border-[#E5E0D8] text-[#6F7775] hover:text-[#23484A] rounded-xs flex items-center justify-center transition-colors"
+                            title="View on store"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Link>
+                          <button
+                            onClick={() => handleDeleteProduct(prod.id)}
+                            className="p-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-xs flex items-center justify-center transition-colors cursor-pointer"
+                            title="Delete product"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Desktop Tabular View (>= md) */}
@@ -983,6 +1474,7 @@ export default function AdminDashboardPage() {
                       <tr className="border-b border-[#E5E0D8] text-[#23484A] bg-[#F8F5EF]">
                         <th className="p-3">Image</th>
                         <th className="p-3">Product Name</th>
+                        <th className="p-3">Category</th>
                         <th className="p-3">Type</th>
                         <th className="p-3">Price</th>
                         <th className="p-3">Stock</th>
@@ -990,53 +1482,203 @@ export default function AdminDashboardPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E5E0D8]">
-                      {filteredProducts.map((prod) => (
-                        <tr key={prod.id} className="hover:bg-[#F8F5EF] transition-colors">
-                          <td className="p-3">
-                            <div className="relative w-10 h-12 bg-[#F8F5EF] overflow-hidden rounded-2xs border border-[#E5E0D8]">
-                              <Image
-                                src={prod.images[0]?.url || '/images/placeholder.jpg'}
-                                alt={prod.name}
-                                fill
-                                className="object-cover object-top"
-                              />
-                            </div>
-                          </td>
-                          <td className="p-3 font-semibold text-[#243234]">{prod.name}</td>
-                          <td className="p-3">
-                            <span className="bg-[#23484A]/10 text-[#23484A] text-[9px] font-bold px-2 py-0.5 rounded-2xs">
-                              {prod.type}
-                            </span>
-                          </td>
-                          <td className="p-3 font-bold text-[#23484A]">
-                            ₹ {prod.price.toLocaleString('en-IN')}
-                          </td>
-                          <td className="p-3 text-[#6F7775]">{prod.stock || 50} pcs</td>
-                          <td className="p-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <Link
-                                href={`/shop/${prod.slug}`}
-                                target="_blank"
-                                className="p-1.5 text-[#6F7775] hover:text-[#23484A] transition-colors"
-                                title="View on store"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                              </Link>
-                              <button
-                                onClick={() => handleDeleteProduct(prod.id)}
-                                className="p-1.5 text-red-600 hover:text-red-800 transition-colors"
-                                title="Delete product"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      {filteredProducts.map((prod) => {
+                        const assignedCat = categories.find((c) => c.id === prod.categoryId || c.slug === prod.categoryId);
+                        return (
+                          <tr key={prod.id} className="hover:bg-[#F8F5EF] transition-colors">
+                            <td className="p-3">
+                              <div className="relative w-10 h-12 bg-[#F8F5EF] overflow-hidden rounded-2xs border border-[#E5E0D8]">
+                                <Image
+                                  src={prod.images[0]?.url || '/images/placeholder.jpg'}
+                                  alt={prod.name}
+                                  fill
+                                  className="object-cover object-top"
+                                />
+                                {prod.images && prod.images.length > 1 && (
+                                  <span className="absolute bottom-0.5 right-0.5 bg-black/65 text-white text-[7px] px-1 rounded-2xs font-semibold">
+                                    {prod.images.length}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-3 font-semibold text-[#243234]">{prod.name}</td>
+                            <td className="p-3">
+                              {assignedCat ? (
+                                <span className="bg-[#C7A66A]/15 text-[#8C6D37] text-[10px] font-semibold px-2 py-0.5 rounded-2xs border border-[#C7A66A]/30">
+                                  {assignedCat.name}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-[#A0A8A6] italic">Unassigned</span>
+                              )}
+                            </td>
+                            <td className="p-3">
+                              <span className="bg-[#23484A]/10 text-[#23484A] text-[9px] font-bold px-2 py-0.5 rounded-2xs">
+                                {prod.type}
+                              </span>
+                            </td>
+                            <td className="p-3 font-bold text-[#23484A]">
+                              ₹ {prod.price.toLocaleString('en-IN')}
+                            </td>
+                            <td className="p-3 text-[#6F7775]">{prod.stock || 50} pcs</td>
+                            <td className="p-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => handleOpenEditProduct(prod)}
+                                  className="p-1.5 text-[#23484A] hover:bg-[#23484A]/10 rounded-xs transition-colors cursor-pointer"
+                                  title="Edit product details & images"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <Link
+                                  href={`/shop/${prod.slug}`}
+                                  target="_blank"
+                                  className="p-1.5 text-[#6F7775] hover:text-[#23484A] transition-colors"
+                                  title="View on store"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </Link>
+                                <button
+                                  onClick={() => handleDeleteProduct(prod.id)}
+                                  className="p-1.5 text-red-600 hover:text-red-800 transition-colors cursor-pointer"
+                                  title="Delete product"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
               </>
+            )}
+          </div>
+        )}
+
+        {/* Tab: CATEGORIES CMS (Separate from Products) */}
+        {activeTab === 'categories' && (
+          <div className="bg-white p-4 sm:p-6 border border-[#E5E0D8] rounded-2xs space-y-5 sm:space-y-6 shadow-2xs">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[#E5E0D8] pb-4">
+              <div>
+                <h2 className="font-serif text-lg sm:text-xl text-[#23484A]">Categories CMS ({categories.length})</h2>
+                <p className="text-[11px] sm:text-xs text-[#6F7775]">
+                  Manage distinct boutique collections and store categories with cover images, completely separate from product inventory.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={handleRestoreDefaultCategories}
+                  disabled={isRestoringCategories}
+                  className="btn bg-white hover:bg-[#FAF8F5] text-[#23484A] border border-[#D9D3C8] text-xs font-semibold px-3 py-2 rounded-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+                  title="Restore or sync the 4 curated categories shown on the homepage"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-[#C7A66A] ${isRestoringCategories ? 'animate-spin' : ''}`} />
+                  <span>Restore Curated Categories</span>
+                </button>
+                <button
+                  onClick={handleOpenAddCategory}
+                  className="btn bg-[#23484A] hover:bg-[#1A3536] text-white text-xs font-semibold px-4 py-2 rounded-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Category</span>
+                </button>
+              </div>
+            </div>
+
+            {categories.length === 0 ? (
+              <div className="text-center py-12 space-y-3 bg-[#F8F5EF] border border-[#E5E0D8] rounded-2xs">
+                <Layers className="w-10 h-10 text-[#C7A66A] mx-auto opacity-70" />
+                <h3 className="font-serif text-base text-[#23484A]">No Categories Created Yet</h3>
+                <p className="text-xs text-[#6F7775] max-w-sm mx-auto">
+                  Create categories like &apos;Dresses&apos;, &apos;Abayas&apos;, &apos;Kurtis&apos;, or &apos;Anarkali&apos; to showcase on your homepage and organize products.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+                  <button
+                    onClick={handleRestoreDefaultCategories}
+                    disabled={isRestoringCategories}
+                    className="btn bg-[#23484A] text-white text-xs font-semibold px-4 py-2 rounded-xs inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-[#C7A66A] ${isRestoringCategories ? 'animate-spin' : ''}`} />
+                    <span>Populate 4 Homepage Categories</span>
+                  </button>
+                  <button
+                    onClick={handleOpenAddCategory}
+                    className="btn bg-white border border-[#23484A] text-[#23484A] text-xs font-semibold px-4 py-2 rounded-xs inline-flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create Custom Category</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {categories.map((cat) => {
+                  const linkedCount = products.filter((p) => p.categoryId === cat.id || p.categoryId === cat.slug).length;
+                  return (
+                    <div
+                      key={cat.id}
+                      className="bg-[#FAF8F5] border border-[#E5E0D8] rounded-2xs overflow-hidden flex flex-col justify-between hover:border-[#23484A]/40 transition-all shadow-2xs"
+                    >
+                      <div className="relative aspect-[16/9] w-full bg-[#EFECE6] overflow-hidden">
+                        <Image
+                          src={cat.image || '/images/placeholder.jpg'}
+                          alt={cat.name}
+                          fill
+                          className="object-cover object-center"
+                        />
+                        <div className="absolute top-2 left-2 bg-[#23484A]/90 backdrop-blur-xs text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                          Order #{cat.order || 1}
+                        </div>
+                        <div className="absolute top-2 right-2 bg-white/95 text-[#23484A] text-[10px] px-2 py-0.5 rounded-full font-semibold border border-[#E5E0D8]">
+                          {linkedCount} {linkedCount === 1 ? 'Product' : 'Products'}
+                        </div>
+                      </div>
+
+                      <div className="p-3.5 flex flex-col flex-1 justify-between space-y-3">
+                        <div>
+                          <h3 className="font-serif text-base font-bold text-[#23484A]">{cat.name}</h3>
+                          <span className="text-[10px] font-mono text-[#6F7775] block mt-0.5">/{cat.slug}</span>
+                          {cat.description && (
+                            <p className="text-xs text-[#6F7775] mt-1 line-clamp-2">{cat.description}</p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-[#E5E0D8]">
+                          <Link
+                            href={`/shop?category=${cat.slug}`}
+                            target="_blank"
+                            className="text-[11px] text-[#23484A] hover:text-[#C7A66A] font-semibold flex items-center gap-1"
+                          >
+                            <span>View in Shop</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </Link>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleOpenEditCategory(cat)}
+                              className="p-1.5 bg-white border border-[#E5E0D8] text-[#23484A] hover:bg-[#F8F5EF] rounded-xs transition-colors cursor-pointer"
+                              title="Edit Category"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                              className="p-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-xs transition-colors cursor-pointer"
+                              title="Delete Category"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
@@ -1072,7 +1714,7 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
-            {/* Sub-tab navigation for 3 Banners + Login — 4-item grid, NO scrolling */}
+            {/* Sub-tab navigation for 3 Banners + Login — 4-item grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pb-1 border-b border-[#E5E0D8]">
               <button
                 type="button"
@@ -1088,24 +1730,30 @@ export default function AdminDashboardPage() {
               <button
                 type="button"
                 onClick={() => setBannerTab('slide2')}
-                className={`py-2 px-2 text-xs font-semibold rounded-2xs transition-colors text-center ${
+                className={`py-2 px-2 text-xs font-semibold rounded-2xs transition-colors text-center flex items-center justify-center gap-1.5 ${
                   bannerTab === 'slide2'
                     ? 'bg-[#23484A] text-white shadow-xs'
                     : 'bg-[#F8F5EF] text-[#243234] hover:bg-[#EBE5D9]'
                 }`}
               >
-                Slide 2 (Arrivals)
+                <span>Slide 2 (Arrivals)</span>
+                {siteSettings.slide2Active === false && (
+                  <span className="w-2 h-2 rounded-full bg-rose-500" title="Slide Removed from Storefront" />
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => setBannerTab('slide3')}
-                className={`py-2 px-2 text-xs font-semibold rounded-2xs transition-colors text-center ${
+                className={`py-2 px-2 text-xs font-semibold rounded-2xs transition-colors text-center flex items-center justify-center gap-1.5 ${
                   bannerTab === 'slide3'
                     ? 'bg-[#23484A] text-white shadow-xs'
                     : 'bg-[#F8F5EF] text-[#243234] hover:bg-[#EBE5D9]'
                 }`}
               >
-                Slide 3 (Occasion)
+                <span>Slide 3 (Occasion)</span>
+                {siteSettings.slide3Active === false && (
+                  <span className="w-2 h-2 rounded-full bg-rose-500" title="Slide Removed from Storefront" />
+                )}
               </button>
               <button
                 type="button"
@@ -1124,9 +1772,14 @@ export default function AdminDashboardPage() {
               {/* SLIDE 1 */}
               {bannerTab === 'slide1' && (
                 <div className="space-y-5 animate-in fade-in duration-200">
-                  <div className="p-3 bg-[#FAF8F5] border border-[#E5E0D8] rounded-2xs">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#C7A66A]">Slide 1 • Primary Showcase</span>
-                    <h3 className="font-serif text-base text-[#23484A]">First Rotating Hero Slide</h3>
+                  <div className="p-3 bg-[#FAF8F5] border border-[#E5E0D8] rounded-2xs flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#C7A66A]">Slide 1 • Primary Showcase</span>
+                      <h3 className="font-serif text-base text-[#23484A]">First Rotating Hero Slide</h3>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800">
+                      ● Active Primary Slide
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1153,65 +1806,47 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2 items-stretch">
-                    {/* Desktop Banner 1 */}
-                    <div className="p-4 sm:p-5 border border-[#E5E0D8] bg-[#F8F5EF] rounded-2xs flex flex-col justify-between h-full shadow-2xs space-y-3.5">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-[#23484A] text-xs sm:text-sm">Desktop Banner (16:9 Landscape)</h4>
-                        <span className="text-[10px] bg-white px-2 py-0.5 border border-[#E5E0D8] text-[#6F7775] rounded-full">Slide 1</span>
-                      </div>
-                      <div className="relative w-full aspect-[16/9] bg-white border border-[#E5E0D8] overflow-hidden rounded-2xs shadow-2xs my-auto">
-                        <Image
-                          src={desktopHeroPreview || siteSettings.heroDesktopImage || '/images/hero-latest.jpg'}
-                          alt="Slide 1 Desktop Banner"
-                          fill
-                          className="object-cover object-center"
-                        />
-                      </div>
-                      <div className="space-y-1.5 pt-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            setDesktopHeroFile(file);
-                            if (file) setDesktopHeroPreview(URL.createObjectURL(file));
-                          }}
-                          className="w-full border border-[#E5E0D8] p-2 rounded-2xs bg-white text-xs file:mr-3 file:py-1 file:px-2.5 file:rounded-2xs file:border-0 file:text-[11px] file:font-semibold file:bg-[#23484A] file:text-white hover:file:bg-[#1A3536] cursor-pointer"
-                        />
-                        <p className="text-[10px] text-[#6F7775]">Upload 1920×1080 or 1600×900 desktop banner.</p>
-                      </div>
-                    </div>
+                    <BannerImageUploader
+                      label="Desktop Banner (16:9 Landscape)"
+                      sublabel="Shown on desktop, laptop & tablet screens"
+                      badge="Slide 1"
+                      aspectRatio="16/9"
+                      currentImageUrl={siteSettings.heroDesktopImage}
+                      stagedFile={desktopHeroFile}
+                      stagedPreviewUrl={desktopHeroPreview}
+                      recommendedDimensions="1920×1080 or 1600×900 px"
+                      isRemoved={siteSettings.heroDesktopImage === '' && !desktopHeroFile}
+                      onFileSelect={(file) => {
+                        setDesktopHeroFile(file);
+                        setDesktopHeroPreview(URL.createObjectURL(file));
+                      }}
+                      onRemove={() => {
+                        setDesktopHeroFile(null);
+                        setDesktopHeroPreview(null);
+                        setSiteSettings((prev) => ({ ...prev, heroDesktopImage: '' }));
+                      }}
+                    />
 
-                    {/* Mobile Banner 1 */}
-                    <div className="p-4 sm:p-5 border border-[#E5E0D8] bg-[#F8F5EF] rounded-2xs flex flex-col justify-between h-full shadow-2xs space-y-3.5">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-[#23484A] text-xs sm:text-sm">Mobile Banner (3:4 Vertical)</h4>
-                        <span className="text-[10px] bg-white px-2 py-0.5 border border-[#E5E0D8] text-[#6F7775] rounded-full">Slide 1</span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center my-auto py-1">
-                        <div className="relative w-40 sm:w-44 aspect-[3/4] bg-white border border-[#E5E0D8] overflow-hidden rounded-2xs shadow-2xs">
-                          <Image
-                            src={mobileHeroPreview || siteSettings.heroMobileImage || '/images/mobileview/fabstore-mobilebanner1.png'}
-                            alt="Slide 1 Mobile Banner"
-                            fill
-                            className="object-cover object-center"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5 pt-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            setMobileHeroFile(file);
-                            if (file) setMobileHeroPreview(URL.createObjectURL(file));
-                          }}
-                          className="w-full border border-[#E5E0D8] p-2 rounded-2xs bg-white text-xs file:mr-3 file:py-1 file:px-2.5 file:rounded-2xs file:border-0 file:text-[11px] file:font-semibold file:bg-[#23484A] file:text-white hover:file:bg-[#1A3536] cursor-pointer"
-                        />
-                        <p className="text-[10px] text-[#6F7775]">Upload 900×1200 or 1080×1440 portrait mobile banner.</p>
-                      </div>
-                    </div>
+                    <BannerImageUploader
+                      label="Mobile Banner (3:4 Vertical)"
+                      sublabel="Shown on smartphone & mobile screens"
+                      badge="Slide 1"
+                      aspectRatio="3/4"
+                      currentImageUrl={siteSettings.heroMobileImage}
+                      stagedFile={mobileHeroFile}
+                      stagedPreviewUrl={mobileHeroPreview}
+                      recommendedDimensions="900×1200 or 1080×1440 px"
+                      isRemoved={siteSettings.heroMobileImage === '' && !mobileHeroFile}
+                      onFileSelect={(file) => {
+                        setMobileHeroFile(file);
+                        setMobileHeroPreview(URL.createObjectURL(file));
+                      }}
+                      onRemove={() => {
+                        setMobileHeroFile(null);
+                        setMobileHeroPreview(null);
+                        setSiteSettings((prev) => ({ ...prev, heroMobileImage: '' }));
+                      }}
+                    />
                   </div>
                 </div>
               )}
@@ -1219,17 +1854,68 @@ export default function AdminDashboardPage() {
               {/* SLIDE 2 */}
               {bannerTab === 'slide2' && (
                 <div className="space-y-5 animate-in fade-in duration-200">
-                  <div className="p-3 bg-[#FAF8F5] border border-[#E5E0D8] rounded-2xs">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#C7A66A]">Slide 2 • New Arrivals & Season</span>
-                    <h3 className="font-serif text-base text-[#23484A]">Second Rotating Hero Slide</h3>
+                  <div className="p-3 bg-[#FAF8F5] border border-[#E5E0D8] rounded-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#C7A66A]">Slide 2 • New Arrivals & Season</span>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                            siteSettings.slide2Active !== false && siteSettings.heroDesktopImage2 !== ''
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-rose-100 text-rose-800'
+                          }`}
+                        >
+                          {siteSettings.slide2Active !== false && siteSettings.heroDesktopImage2 !== ''
+                            ? '● Active on Storefront'
+                            : '○ Banner Removed / Hidden'}
+                        </span>
+                      </div>
+                      <h3 className="font-serif text-base text-[#23484A]">Second Rotating Hero Slide</h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSiteSettings((prev) => ({
+                          ...prev,
+                          slide2Active: prev.slide2Active === false ? true : false,
+                        }))
+                      }
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-2xs border transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs ${
+                        siteSettings.slide2Active === false
+                          ? 'bg-[#23484A] text-white border-[#23484A] hover:bg-[#1A3536]'
+                          : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
+                      }`}
+                    >
+                      {siteSettings.slide2Active === false ? (
+                        <>
+                          <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Enable Slide on Storefront</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Remove Banner from Storefront</span>
+                        </>
+                      )}
+                    </button>
                   </div>
+
+                  {siteSettings.slide2Active === false && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xs text-xs flex items-center gap-2">
+                      <span className="font-bold">Notice:</span>
+                      <span>
+                        Slide 2 is currently removed from your homepage slider. Customers will not see it. You can still customize or replace the images below, and click <strong>Enable Slide</strong> when ready.
+                      </span>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="block text-[#243234] font-semibold">Slide 2 Headline</label>
                       <input
                         type="text"
-                        value={siteSettings.heroTitle2 || 'Crafted with Love & Detail'}
+                        value={siteSettings.heroTitle2 || ''}
                         onChange={(e) => setSiteSettings({ ...siteSettings, heroTitle2: e.target.value })}
                         className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A] bg-white"
                         placeholder="Crafted with Love & Detail"
@@ -1239,7 +1925,7 @@ export default function AdminDashboardPage() {
                       <label className="block text-[#243234] font-semibold">Slide 2 Subtitle</label>
                       <input
                         type="text"
-                        value={siteSettings.heroSubtitle2 || 'Timeless Occasion Wear & Bespoke Couture'}
+                        value={siteSettings.heroSubtitle2 || ''}
                         onChange={(e) => setSiteSettings({ ...siteSettings, heroSubtitle2: e.target.value })}
                         className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A] bg-white"
                         placeholder="Timeless Occasion Wear & Bespoke Couture"
@@ -1248,65 +1934,47 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2 items-stretch">
-                    {/* Desktop Banner 2 */}
-                    <div className="p-4 sm:p-5 border border-[#E5E0D8] bg-[#F8F5EF] rounded-2xs flex flex-col justify-between h-full shadow-2xs space-y-3.5">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-[#23484A] text-xs sm:text-sm">Desktop Banner (16:9 Landscape)</h4>
-                        <span className="text-[10px] bg-white px-2 py-0.5 border border-[#E5E0D8] text-[#6F7775] rounded-full">Slide 2</span>
-                      </div>
-                      <div className="relative w-full aspect-[16/9] bg-white border border-[#E5E0D8] overflow-hidden rounded-2xs shadow-2xs my-auto">
-                        <Image
-                          src={desktopHero2Preview || siteSettings.heroDesktopImage2 || '/images/mobileview/fabstore-banner2.png'}
-                          alt="Slide 2 Desktop Banner"
-                          fill
-                          className="object-cover object-center"
-                        />
-                      </div>
-                      <div className="space-y-1.5 pt-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            setDesktopHero2File(file);
-                            if (file) setDesktopHero2Preview(URL.createObjectURL(file));
-                          }}
-                          className="w-full border border-[#E5E0D8] p-2 rounded-2xs bg-white text-xs file:mr-3 file:py-1 file:px-2.5 file:rounded-2xs file:border-0 file:text-[11px] file:font-semibold file:bg-[#23484A] file:text-white hover:file:bg-[#1A3536] cursor-pointer"
-                        />
-                        <p className="text-[10px] text-[#6F7775]">Upload 1920×1080 or 1600×900 desktop banner.</p>
-                      </div>
-                    </div>
+                    <BannerImageUploader
+                      label="Desktop Banner (16:9 Landscape)"
+                      sublabel="Shown on desktop, laptop & tablet screens"
+                      badge="Slide 2"
+                      aspectRatio="16/9"
+                      currentImageUrl={siteSettings.heroDesktopImage2}
+                      stagedFile={desktopHero2File}
+                      stagedPreviewUrl={desktopHero2Preview}
+                      recommendedDimensions="1920×1080 or 1600×900 px"
+                      isRemoved={siteSettings.heroDesktopImage2 === '' && !desktopHero2File}
+                      onFileSelect={(file) => {
+                        setDesktopHero2File(file);
+                        setDesktopHero2Preview(URL.createObjectURL(file));
+                      }}
+                      onRemove={() => {
+                        setDesktopHero2File(null);
+                        setDesktopHero2Preview(null);
+                        setSiteSettings((prev) => ({ ...prev, heroDesktopImage2: '' }));
+                      }}
+                    />
 
-                    {/* Mobile Banner 2 */}
-                    <div className="p-4 sm:p-5 border border-[#E5E0D8] bg-[#F8F5EF] rounded-2xs flex flex-col justify-between h-full shadow-2xs space-y-3.5">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-[#23484A] text-xs sm:text-sm">Mobile Banner (3:4 Vertical)</h4>
-                        <span className="text-[10px] bg-white px-2 py-0.5 border border-[#E5E0D8] text-[#6F7775] rounded-full">Slide 2</span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center my-auto py-1">
-                        <div className="relative w-40 sm:w-44 aspect-[3/4] bg-white border border-[#E5E0D8] overflow-hidden rounded-2xs shadow-2xs">
-                          <Image
-                            src={mobileHero2Preview || siteSettings.heroMobileImage2 || '/images/mobileview/fabstore-mobilebanner2.png'}
-                            alt="Slide 2 Mobile Banner"
-                            fill
-                            className="object-cover object-center"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5 pt-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            setMobileHero2File(file);
-                            if (file) setMobileHero2Preview(URL.createObjectURL(file));
-                          }}
-                          className="w-full border border-[#E5E0D8] p-2 rounded-2xs bg-white text-xs file:mr-3 file:py-1 file:px-2.5 file:rounded-2xs file:border-0 file:text-[11px] file:font-semibold file:bg-[#23484A] file:text-white hover:file:bg-[#1A3536] cursor-pointer"
-                        />
-                        <p className="text-[10px] text-[#6F7775]">Upload 900×1200 or 1080×1440 portrait mobile banner.</p>
-                      </div>
-                    </div>
+                    <BannerImageUploader
+                      label="Mobile Banner (3:4 Vertical)"
+                      sublabel="Shown on smartphone & mobile screens"
+                      badge="Slide 2"
+                      aspectRatio="3/4"
+                      currentImageUrl={siteSettings.heroMobileImage2}
+                      stagedFile={mobileHero2File}
+                      stagedPreviewUrl={mobileHero2Preview}
+                      recommendedDimensions="900×1200 or 1080×1440 px"
+                      isRemoved={siteSettings.heroMobileImage2 === '' && !mobileHero2File}
+                      onFileSelect={(file) => {
+                        setMobileHero2File(file);
+                        setMobileHero2Preview(URL.createObjectURL(file));
+                      }}
+                      onRemove={() => {
+                        setMobileHero2File(null);
+                        setMobileHero2Preview(null);
+                        setSiteSettings((prev) => ({ ...prev, heroMobileImage2: '' }));
+                      }}
+                    />
                   </div>
                 </div>
               )}
@@ -1314,17 +1982,68 @@ export default function AdminDashboardPage() {
               {/* SLIDE 3 */}
               {bannerTab === 'slide3' && (
                 <div className="space-y-5 animate-in fade-in duration-200">
-                  <div className="p-3 bg-[#FAF8F5] border border-[#E5E0D8] rounded-2xs">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#C7A66A]">Slide 3 • Bespoke Occasion Wear</span>
-                    <h3 className="font-serif text-base text-[#23484A]">Third Rotating Hero Slide</h3>
+                  <div className="p-3 bg-[#FAF8F5] border border-[#E5E0D8] rounded-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#C7A66A]">Slide 3 • Bespoke Occasion Wear</span>
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                            siteSettings.slide3Active !== false && siteSettings.heroDesktopImage3 !== ''
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-rose-100 text-rose-800'
+                          }`}
+                        >
+                          {siteSettings.slide3Active !== false && siteSettings.heroDesktopImage3 !== ''
+                            ? '● Active on Storefront'
+                            : '○ Banner Removed / Hidden'}
+                        </span>
+                      </div>
+                      <h3 className="font-serif text-base text-[#23484A]">Third Rotating Hero Slide</h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSiteSettings((prev) => ({
+                          ...prev,
+                          slide3Active: prev.slide3Active === false ? true : false,
+                        }))
+                      }
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-2xs border transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs ${
+                        siteSettings.slide3Active === false
+                          ? 'bg-[#23484A] text-white border-[#23484A] hover:bg-[#1A3536]'
+                          : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
+                      }`}
+                    >
+                      {siteSettings.slide3Active === false ? (
+                        <>
+                          <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Enable Slide on Storefront</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Remove Banner from Storefront</span>
+                        </>
+                      )}
+                    </button>
                   </div>
+
+                  {siteSettings.slide3Active === false && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xs text-xs flex items-center gap-2">
+                      <span className="font-bold">Notice:</span>
+                      <span>
+                        Slide 3 is currently removed from your homepage slider. Customers will not see it. You can still customize or replace the images below, and click <strong>Enable Slide</strong> when ready.
+                      </span>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="block text-[#243234] font-semibold">Slide 3 Headline</label>
                       <input
                         type="text"
-                        value={siteSettings.heroTitle3 || 'Designed for Every Moment'}
+                        value={siteSettings.heroTitle3 || ''}
                         onChange={(e) => setSiteSettings({ ...siteSettings, heroTitle3: e.target.value })}
                         className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A] bg-white"
                         placeholder="Designed for Every Moment"
@@ -1334,7 +2053,7 @@ export default function AdminDashboardPage() {
                       <label className="block text-[#243234] font-semibold">Slide 3 Subtitle</label>
                       <input
                         type="text"
-                        value={siteSettings.heroSubtitle3 || 'Curated luxury & handcrafted elegance'}
+                        value={siteSettings.heroSubtitle3 || ''}
                         onChange={(e) => setSiteSettings({ ...siteSettings, heroSubtitle3: e.target.value })}
                         className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A] bg-white"
                         placeholder="Curated luxury & handcrafted elegance"
@@ -1343,65 +2062,47 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-2 items-stretch">
-                    {/* Desktop Banner 3 */}
-                    <div className="p-4 sm:p-5 border border-[#E5E0D8] bg-[#F8F5EF] rounded-2xs flex flex-col justify-between h-full shadow-2xs space-y-3.5">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-[#23484A] text-xs sm:text-sm">Desktop Banner (16:9 Landscape)</h4>
-                        <span className="text-[10px] bg-white px-2 py-0.5 border border-[#E5E0D8] text-[#6F7775] rounded-full">Slide 3</span>
-                      </div>
-                      <div className="relative w-full aspect-[16/9] bg-white border border-[#E5E0D8] overflow-hidden rounded-2xs shadow-2xs my-auto">
-                        <Image
-                          src={desktopHero3Preview || siteSettings.heroDesktopImage3 || '/images/mobileview/fabstore-banner3.png'}
-                          alt="Slide 3 Desktop Banner"
-                          fill
-                          className="object-cover object-center"
-                        />
-                      </div>
-                      <div className="space-y-1.5 pt-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            setDesktopHero3File(file);
-                            if (file) setDesktopHero3Preview(URL.createObjectURL(file));
-                          }}
-                          className="w-full border border-[#E5E0D8] p-2 rounded-2xs bg-white text-xs file:mr-3 file:py-1 file:px-2.5 file:rounded-2xs file:border-0 file:text-[11px] file:font-semibold file:bg-[#23484A] file:text-white hover:file:bg-[#1A3536] cursor-pointer"
-                        />
-                        <p className="text-[10px] text-[#6F7775]">Upload 1920×1080 or 1600×900 desktop banner.</p>
-                      </div>
-                    </div>
+                    <BannerImageUploader
+                      label="Desktop Banner (16:9 Landscape)"
+                      sublabel="Shown on desktop, laptop & tablet screens"
+                      badge="Slide 3"
+                      aspectRatio="16/9"
+                      currentImageUrl={siteSettings.heroDesktopImage3}
+                      stagedFile={desktopHero3File}
+                      stagedPreviewUrl={desktopHero3Preview}
+                      recommendedDimensions="1920×1080 or 1600×900 px"
+                      isRemoved={siteSettings.heroDesktopImage3 === '' && !desktopHero3File}
+                      onFileSelect={(file) => {
+                        setDesktopHero3File(file);
+                        setDesktopHero3Preview(URL.createObjectURL(file));
+                      }}
+                      onRemove={() => {
+                        setDesktopHero3File(null);
+                        setDesktopHero3Preview(null);
+                        setSiteSettings((prev) => ({ ...prev, heroDesktopImage3: '' }));
+                      }}
+                    />
 
-                    {/* Mobile Banner 3 */}
-                    <div className="p-4 sm:p-5 border border-[#E5E0D8] bg-[#F8F5EF] rounded-2xs flex flex-col justify-between h-full shadow-2xs space-y-3.5">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-[#23484A] text-xs sm:text-sm">Mobile Banner (3:4 Vertical)</h4>
-                        <span className="text-[10px] bg-white px-2 py-0.5 border border-[#E5E0D8] text-[#6F7775] rounded-full">Slide 3</span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center my-auto py-1">
-                        <div className="relative w-40 sm:w-44 aspect-[3/4] bg-white border border-[#E5E0D8] overflow-hidden rounded-2xs shadow-2xs">
-                          <Image
-                            src={mobileHero3Preview || siteSettings.heroMobileImage3 || '/images/mobileview/fabstore-mobileview3.png'}
-                            alt="Slide 3 Mobile Banner"
-                            fill
-                            className="object-cover object-center"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1.5 pt-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            setMobileHero3File(file);
-                            if (file) setMobileHero3Preview(URL.createObjectURL(file));
-                          }}
-                          className="w-full border border-[#E5E0D8] p-2 rounded-2xs bg-white text-xs file:mr-3 file:py-1 file:px-2.5 file:rounded-2xs file:border-0 file:text-[11px] file:font-semibold file:bg-[#23484A] file:text-white hover:file:bg-[#1A3536] cursor-pointer"
-                        />
-                        <p className="text-[10px] text-[#6F7775]">Upload 900×1200 or 1080×1440 portrait mobile banner.</p>
-                      </div>
-                    </div>
+                    <BannerImageUploader
+                      label="Mobile Banner (3:4 Vertical)"
+                      sublabel="Shown on smartphone & mobile screens"
+                      badge="Slide 3"
+                      aspectRatio="3/4"
+                      currentImageUrl={siteSettings.heroMobileImage3}
+                      stagedFile={mobileHero3File}
+                      stagedPreviewUrl={mobileHero3Preview}
+                      recommendedDimensions="900×1200 or 1080×1440 px"
+                      isRemoved={siteSettings.heroMobileImage3 === '' && !mobileHero3File}
+                      onFileSelect={(file) => {
+                        setMobileHero3File(file);
+                        setMobileHero3Preview(URL.createObjectURL(file));
+                      }}
+                      onRemove={() => {
+                        setMobileHeroFile(null);
+                        setMobileHeroPreview(null);
+                        setSiteSettings((prev) => ({ ...prev, heroMobileImage3: '' }));
+                      }}
+                    />
                   </div>
                 </div>
               )}
@@ -1438,32 +2139,27 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  {/* Login Image Uploader */}
-                  <div className="p-4 sm:p-5 border border-[#E5E0D8] bg-[#F8F5EF] rounded-2xs space-y-3 max-w-lg shadow-2xs">
-                    <h4 className="font-semibold text-[#23484A] text-xs sm:text-sm">Login Side Banner Image</h4>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                      <div className="relative w-28 aspect-[3/4] bg-white border border-[#E5E0D8] overflow-hidden rounded-2xs shadow-2xs shrink-0 mx-auto sm:mx-0">
-                        <Image
-                          src={loginHeroPreview || siteSettings.loginImage || '/images/craftsmanship.jpg'}
-                          alt="Login Artwork"
-                          fill
-                          className="object-cover object-center"
-                        />
-                      </div>
-                      <div className="space-y-2 flex-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0] || null;
-                            setLoginHeroFile(file);
-                            if (file) setLoginHeroPreview(URL.createObjectURL(file));
-                          }}
-                          className="w-full border border-[#E5E0D8] p-2 rounded-2xs bg-white text-xs file:mr-2 file:py-1 file:px-2 file:rounded-2xs file:border-0 file:text-[10px] file:font-semibold file:bg-[#23484A] file:text-white hover:file:bg-[#1A3536] cursor-pointer"
-                        />
-                        <p className="text-[10px] text-[#6F7775]">Upload campaign portrait artwork for customer login screen.</p>
-                      </div>
-                    </div>
+                  <div className="max-w-md">
+                    <BannerImageUploader
+                      label="Login Side Banner Image"
+                      sublabel="Shown alongside customer login & registration form"
+                      badge="Login Screen"
+                      aspectRatio="3/4"
+                      currentImageUrl={siteSettings.loginImage}
+                      stagedFile={loginHeroFile}
+                      stagedPreviewUrl={loginHeroPreview}
+                      recommendedDimensions="900×1200 or 1080×1440 portrait"
+                      isRemoved={siteSettings.loginImage === '' && !loginHeroFile}
+                      onFileSelect={(file) => {
+                        setLoginHeroFile(file);
+                        setLoginHeroPreview(URL.createObjectURL(file));
+                      }}
+                      onRemove={() => {
+                        setLoginHeroFile(null);
+                        setLoginHeroPreview(null);
+                        setSiteSettings((prev) => ({ ...prev, loginImage: '' }));
+                      }}
+                    />
                   </div>
                 </div>
               )}
@@ -1707,19 +2403,24 @@ export default function AdminDashboardPage() {
       </main>
 
       {/* ============================================================ */}
-      {/* ADVANCED ADD PRODUCT MODAL — Cloudinary Drag & Drop Preview  */}
+      {/* PRODUCT ADD / EDIT MODAL — 4 Image Slots (1 Main + 3 Sub)   */}
       {/* ============================================================ */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white border border-[#E5E0D8] shadow-2xl w-full max-w-lg p-4 sm:p-6 rounded-xs space-y-4 sm:space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white border border-[#E5E0D8] shadow-2xl w-full max-w-xl p-4 sm:p-6 rounded-xs space-y-4 sm:space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-3">
               <div className="flex items-center gap-2">
-                <h3 className="font-serif text-xl text-[#23484A]">Add Product to CMS</h3>
+                <h3 className="font-serif text-xl text-[#23484A]">
+                  {editingProductId ? 'Edit Product' : 'Add Product to CMS'}
+                </h3>
                 <span className="text-[10px] font-bold bg-[#003B75]/10 text-[#003B75] px-2 py-0.5 rounded-full">
-                  Cloudinary Upload
+                  Cloudinary 4-Photo
                 </span>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-[#6F7775] hover:text-[#23484A]">
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-[#6F7775] hover:text-[#23484A] cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1736,7 +2437,7 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
-            <form onSubmit={handleCreateProduct} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
               <div>
                 <label className="block text-[#243234] font-semibold mb-1">Product Name *</label>
                 <input
@@ -1774,7 +2475,7 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-[#243234] font-semibold mb-1">Product Type</label>
                   <select
@@ -1785,6 +2486,22 @@ export default function AdminDashboardPage() {
                     <option value="CUSTOM">Custom Made</option>
                     <option value="READY_STOCK">Ready to Ship</option>
                     <option value="FABRIC">Fabric</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[#243234] font-semibold mb-1">Store Category</label>
+                  <select
+                    value={newProductCategory}
+                    onChange={(e) => setNewProductCategory(e.target.value)}
+                    className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A] bg-white font-medium"
+                  >
+                    <option value="">-- No Category --</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -1802,7 +2519,7 @@ export default function AdminDashboardPage() {
               <div>
                 <label className="block text-[#243234] font-semibold mb-1">Product Description</label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   placeholder="Enter details about fabric, embroidery work, fit and style..."
                   value={newProductDescription}
                   onChange={(e) => setNewProductDescription(e.target.value)}
@@ -1810,54 +2527,360 @@ export default function AdminDashboardPage() {
                 />
               </div>
 
-              {/* Enhanced File Dropzone & Live Preview */}
-              <div>
-                <label className="block text-[#243234] font-semibold mb-1">Product Photo (Cloudinary Upload)</label>
-                
-                {filePreview ? (
-                  <div className="relative aspect-[4/3] w-full bg-[#F8F5EF] border border-[#E5E0D8] overflow-hidden rounded-2xs mb-2">
-                    <Image src={filePreview} alt="Preview" fill className="object-cover object-top" />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedFile(null);
-                        setFilePreview(null);
-                      }}
-                      className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full shadow-xs"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="border-2 border-dashed border-[#E5E0D8] hover:border-[#23484A] p-4 text-center block rounded-2xs bg-[#F8F5EF] cursor-pointer transition-colors">
-                    <Upload className="w-6 h-6 text-[#C7A66A] mx-auto mb-1" />
-                    <span className="text-xs font-semibold text-[#23484A] block">Click to Choose Photo File</span>
-                    <span className="text-[10px] text-[#6F7775] block mt-0.5">Supports JPG, PNG, WEBP — Direct Cloudinary Upload</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      className="hidden"
-                    />
+              {/* 3 Image Slots: 1 Main Photo + 2 Sub Images */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[#243234] font-semibold">
+                    Product Images (1 Main + 2 Sub Images)
                   </label>
-                )}
+                  <span className="text-[10px] text-[#6F7775]">Total 3 image slots</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {[0, 1, 2].map((idx) => {
+                    const slot = imageSlots[idx];
+                    const isMain = idx === 0;
+                    const displayUrl = slot?.preview || slot?.existingUrl;
+                    const isDraggingThis = slotDragging === idx;
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`border rounded-2xs p-2 flex flex-col justify-between transition-all ${
+                          isMain ? 'border-[#C7A66A] bg-[#FAF8F5]' : 'border-[#E5E0D8] bg-white'
+                        } ${isDraggingThis ? 'ring-2 ring-[#23484A] bg-[#23484A]/5' : ''}`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSlotDragging(idx);
+                        }}
+                        onDragEnter={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSlotDragging(idx);
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                            setSlotDragging(null);
+                          }
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSlotDragging(null);
+                          const file = e.dataTransfer.files?.[0];
+                          if (file && file.type.startsWith('image/')) {
+                            handleSlotFileChange(idx, file);
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className={`text-[10px] font-bold ${isMain ? 'text-[#8C6D37]' : 'text-[#6F7775]'}`}>
+                            {isMain ? '★ Main Image' : `Sub Image ${idx}`}
+                          </span>
+                          {displayUrl && (
+                            <button
+                              type="button"
+                              onClick={() => handleSlotRemove(idx)}
+                              className="text-red-500 hover:text-red-700 p-0.5 rounded-full cursor-pointer"
+                              title="Remove image"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+
+                        {displayUrl ? (
+                          <div className="relative aspect-[3/4] w-full rounded-xs overflow-hidden border border-[#E5E0D8] bg-[#F8F5EF] mb-2">
+                            <Image src={displayUrl} alt={`Slot ${idx + 1}`} fill className="object-cover object-top" />
+                            {slot?.file && (
+                              <span className="absolute bottom-1 right-1 bg-emerald-600 text-white text-[8px] px-1 py-0.2 rounded-2xs font-semibold">
+                                New
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <label className="aspect-[3/4] w-full rounded-xs border border-dashed border-[#D9D3C8] hover:border-[#23484A] flex flex-col items-center justify-center p-2 text-center cursor-pointer mb-2 bg-[#F8F5EF]/60 hover:bg-[#F8F5EF] transition-colors">
+                            <Upload className={`w-5 h-5 mb-1 ${isMain ? 'text-[#C7A66A]' : 'text-[#6F7775]'}`} />
+                            <span className="text-[10px] font-semibold text-[#23484A] block">
+                              {isDraggingThis ? 'Drop Here' : isMain ? 'Upload Main' : `Upload Sub ${idx}`}
+                            </span>
+                            <span className="text-[8px] text-[#6F7775] block mt-0.5">Drag & Drop</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleSlotFileChange(idx, e.target.files?.[0] || null)}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
+
+                        {displayUrl && (
+                          <label className="text-[10px] text-center text-[#23484A] hover:underline font-semibold cursor-pointer block py-0.5">
+                            Change
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleSlotFileChange(idx, e.target.files?.[0] || null)}
+                              className="hidden"
+                            />
+                          </label>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-[#6F7775]">
+                  • <strong>Main Image</strong> will appear in catalog cards, details hero, and checkout.<br />
+                  • <strong>Sub Images 1 & 2</strong> will appear beneath the card image and in the product gallery.
+                </p>
               </div>
 
               <div className="pt-2 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="w-full sm:w-auto px-4 py-2 border border-[#E5E0D8] text-[#6F7775] hover:bg-[#F8F5EF] rounded-2xs text-center"
+                  className="w-full sm:w-auto px-4 py-2 border border-[#E5E0D8] text-[#6F7775] hover:bg-[#F8F5EF] rounded-2xs text-center cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isUploading}
-                  className="w-full sm:w-auto btn bg-[#23484A] hover:bg-[#1A3536] text-white px-5 py-2 rounded-2xs font-semibold uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+                  className="w-full sm:w-auto btn bg-[#23484A] hover:bg-[#1A3536] text-white px-5 py-2 rounded-2xs font-semibold uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
                   {isUploading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{isUploading ? 'Uploading to Cloudinary...' : 'Upload & Save Product'}</span>
+                  <span>
+                    {isUploading
+                      ? 'Saving to Cloudinary & DB...'
+                      : editingProductId
+                      ? 'Update Product'
+                      : 'Upload & Save Product'}
+                  </span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* CATEGORY ADD / EDIT MODAL                                    */}
+      {/* ============================================================ */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white border border-[#E5E0D8] shadow-2xl w-full max-w-md p-4 sm:p-6 rounded-xs space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-[#E5E0D8] pb-3">
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-[#23484A]" />
+                <h3 className="font-serif text-xl text-[#23484A]">
+                  {editingCategory ? 'Edit Category' : 'Create New Category'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsCategoryModalOpen(false)}
+                className="text-[#6F7775] hover:text-[#23484A] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {categoryMessage && (
+              <div
+                className={`p-3 text-xs rounded-2xs border ${
+                  categoryMessage.type === 'success'
+                    ? 'bg-green-50 border-green-200 text-green-800'
+                    : 'bg-red-50 border-red-200 text-red-800'
+                }`}
+              >
+                {categoryMessage.text}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveCategory} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-[#243234] font-semibold mb-1">Category Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Designer Abayas"
+                  value={categoryName}
+                  onChange={(e) => {
+                    setCategoryName(e.target.value);
+                    if (!editingCategory) {
+                      setCategorySlug(
+                        e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9]+/g, '-')
+                          .replace(/(^-|-$)+/g, '')
+                      );
+                    }
+                  }}
+                  required
+                  className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[#243234] font-semibold mb-1">URL Slug</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. designer-abayas"
+                    value={categorySlug}
+                    onChange={(e) => setCategorySlug(e.target.value)}
+                    className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A] font-mono text-[11px]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[#243234] font-semibold mb-1">Display Order</label>
+                  <input
+                    type="number"
+                    value={categoryOrder}
+                    onChange={(e) => setCategoryOrder(Number(e.target.value))}
+                    min={1}
+                    className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[#243234] font-semibold mb-1">Description (Optional)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Short description for collection banners..."
+                  value={categoryDescription}
+                  onChange={(e) => setCategoryDescription(e.target.value)}
+                  className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#243234] font-semibold mb-1">Category Cover Image</label>
+                {categoryPreview || categoryExistingImage ? (
+                  <div className="space-y-2">
+                    <div className="relative aspect-[16/9] w-full rounded-2xs overflow-hidden border border-[#E5E0D8] bg-[#F8F5EF]">
+                      <Image
+                        src={categoryPreview || categoryExistingImage}
+                        alt="Category preview"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <label className="flex-1 py-1.5 px-3 bg-white hover:bg-[#FAF8F5] text-[#23484A] border border-[#D9D3C8] rounded-2xs text-[11px] font-semibold transition-colors shadow-2xs text-center cursor-pointer flex items-center justify-center gap-1.5">
+                        <Upload className="w-3.5 h-3.5 text-[#C7A66A]" />
+                        <span>Change Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              setCategoryFile(file);
+                              const reader = new FileReader();
+                              reader.onloadend = () => setCategoryPreview(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCategoryFile(null);
+                          setCategoryPreview(null);
+                          setCategoryExistingImage('');
+                        }}
+                        className="py-1.5 px-3 bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 rounded-2xs text-[11px] font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Remove</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsCategoryDragging(true);
+                    }}
+                    onDragEnter={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsCategoryDragging(true);
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        setIsCategoryDragging(false);
+                      }
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsCategoryDragging(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file && file.type.startsWith('image/')) {
+                        setCategoryFile(file);
+                        const reader = new FileReader();
+                        reader.onloadend = () => setCategoryPreview(reader.result as string);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className={`border-2 border-dashed p-5 text-center rounded-2xs transition-all cursor-pointer ${
+                      isCategoryDragging
+                        ? 'border-[#C7A66A] bg-[#C7A66A]/10'
+                        : 'border-[#E5E0D8] bg-[#F8F5EF] hover:border-[#23484A]'
+                    }`}
+                  >
+                    <label className="cursor-pointer block">
+                      <Upload className="w-6 h-6 mx-auto mb-1.5 text-[#C7A66A]" />
+                      <span className="text-xs font-semibold text-[#23484A] block">
+                        Drag & Drop Category Cover or Click to Browse
+                      </span>
+                      <span className="text-[10px] text-[#6F7775] block mt-0.5">
+                        High resolution recommended (16:9 or 3:4)
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setCategoryFile(file);
+                            const reader = new FileReader();
+                            reader.onloadend = () => setCategoryPreview(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsCategoryModalOpen(false)}
+                  className="w-full sm:w-auto px-4 py-2 border border-[#E5E0D8] text-[#6F7775] hover:bg-[#F8F5EF] rounded-2xs text-center cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCategoryUploading}
+                  className="w-full sm:w-auto btn bg-[#23484A] hover:bg-[#1A3536] text-white px-5 py-2 rounded-2xs font-semibold uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                >
+                  {isCategoryUploading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{isCategoryUploading ? 'Saving Category...' : editingCategory ? 'Update Category' : 'Create Category'}</span>
                 </button>
               </div>
             </form>

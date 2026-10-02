@@ -135,7 +135,42 @@ export const PLACEHOLDER_IMAGES = {
   instagram: [],
 } as const;
 
-export const MOCK_CATEGORIES: Category[] = [];
+export const DEFAULT_CATEGORIES: Category[] = [
+  {
+    id: 'custom-made-outfits',
+    slug: 'custom-made-outfits',
+    name: 'Custom Made Outfits',
+    description: 'Elegantly crafted outfits tailored to your measurements and style.',
+    image: '/images/categories/custom-made.jpg',
+    order: 1,
+  },
+  {
+    id: 'ready-to-ship',
+    slug: 'ready-to-ship',
+    name: 'Ready to Ship Collection',
+    description: 'Beautiful ready-made outfits available for immediate delivery.',
+    image: '/images/categories/ready-to-ship.jpg',
+    order: 2,
+  },
+  {
+    id: 'fabrics',
+    slug: 'fabrics',
+    name: 'Fabrics by the Meter',
+    description: 'Premium handpicked fabrics for your creative designs.',
+    image: '/images/categories/fabrics.jpg',
+    order: 3,
+  },
+  {
+    id: 'accessories',
+    slug: 'accessories',
+    name: 'Accessories & More',
+    description: 'Complement your outfit with our curated accessories.',
+    image: '/images/categories/accessories.jpg',
+    order: 4,
+  },
+];
+
+export const MOCK_CATEGORIES: Category[] = DEFAULT_CATEGORIES;
 export const MOCK_PRODUCTS: Product[] = [];
 export const MOCK_FABRICS: Fabric[] = [];
 

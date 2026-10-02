@@ -18,7 +18,14 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const mainImage = product.images[0]?.url || '/images/placeholder.jpg';
+  const productImages = product.images && product.images.length > 0 ? product.images : [{ id: 'default', url: '/images/placeholder.jpg', alt: product.name, order: 1 }];
+  const [activeImage, setActiveImage] = useState(productImages[0]?.url || '/images/placeholder.jpg');
+
+  useEffect(() => {
+    if (product.images && product.images.length > 0) {
+      setActiveImage(product.images[0].url);
+    }
+  }, [product.images]);
 
   // Check if product is in wishlist on mount
   useEffect(() => {
@@ -132,13 +139,42 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         {/* Product Image */}
         <Link href={`/shop/${product.slug}`} className="product-image-wrapper block aspect-[3/4] relative bg-[#F2EDE4] overflow-hidden">
           <Image
-            src={mainImage}
+            src={activeImage}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
+            className="object-cover object-top transition-all duration-300 group-hover:scale-105"
           />
         </Link>
+
+        {/* Sub Images Beneath Product Card Image */}
+        {productImages.length > 1 && (
+          <div className="flex items-center gap-1.5 px-2.5 pt-2 pb-0.5 border-b border-[#E5E0D8]/60 bg-[#FAF8F5]">
+            {productImages.slice(0, 3).map((img, idx) => (
+              <button
+                key={img.id || idx}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setActiveImage(img.url);
+                }}
+                onMouseEnter={() => setActiveImage(img.url)}
+                className={`relative w-7 h-9 sm:w-8 sm:h-10 rounded-2xs overflow-hidden border transition-all cursor-pointer ${
+                  activeImage === img.url
+                    ? 'border-[#23484A] ring-1 ring-[#23484A] scale-105 shadow-2xs'
+                    : 'border-[#E5E0D8] opacity-65 hover:opacity-100 hover:border-[#C7A66A]'
+                }`}
+                title={`View view ${idx + 1}`}
+              >
+                <Image src={img.url} alt={img.alt || product.name} fill className="object-cover object-top" sizes="32px" />
+              </button>
+            ))}
+            {productImages.length > 3 && (
+              <span className="text-[9px] text-[#6F7775] font-medium ml-0.5">+{productImages.length - 3}</span>
+            )}
+          </div>
+        )}
 
         {/* Product Content — Pro UI/UX E-Commerce Layout */}
         <div className="p-2.5 sm:p-3.5 flex flex-col flex-1 bg-[#FAF8F5] space-y-1.5 sm:space-y-2">
