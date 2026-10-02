@@ -7,8 +7,8 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ProductCard from '@/components/products/ProductCard';
 import BrandPromises from '@/components/home/BrandPromises';
-import type { Product } from '@/types';
-import { getProducts } from '@/lib/supabase/services';
+import type { Product, Category } from '@/types';
+import { getProducts, getCategories } from '@/lib/supabase/services';
 import { MOCK_PRODUCTS, BRAND } from '@/lib/constants';
 import { SlidersHorizontal, X, MessageCircle, Search, RefreshCw } from 'lucide-react';
 
@@ -19,6 +19,8 @@ function ShopContent() {
   const initialCategory = searchParams.get('category') || 'All';
 
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
+  const [categories, setCategories] = useState<string[]>(['All', 'Dresses', 'Anarkali', 'Abaya', 'Kurti', 'Sets']);
+  const [rawCategories, setRawCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [selectedFabric, setSelectedFabric] = useState<string>('All');
   const [priceRange, setPriceRange] = useState<number>(10000);
@@ -26,7 +28,6 @@ function ShopContent() {
   const [mobileFilterOpen, setMobileFilterOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
 
-  const categories = ['All', 'Dresses', 'Anarkali', 'Abaya', 'Kurti', 'Sets'];
   const fabrics = ['All', 'Cotton', 'Linen', 'Silk', 'Chiffon', 'Georgette'];
 
   useEffect(() => {
@@ -34,20 +35,33 @@ function ShopContent() {
   }, [initialSearch]);
 
   useEffect(() => {
-    if (initialCategory && initialCategory !== 'All') {
-      // capitalize first letter or match
-      const matched = categories.find((c) => c.toLowerCase() === initialCategory.toLowerCase());
-      if (matched) setSelectedCategory(matched);
-    }
-  }, [initialCategory]);
+    getCategories().then((data) => {
+      if (data && data.length > 0) {
+        setRawCategories(data);
+        setCategories(['All', ...data.map((c) => c.name)]);
+      }
+    });
 
-  useEffect(() => {
     getProducts().then((data) => {
       if (data && data.length > 0) {
         setProducts(data);
       }
     });
   }, []);
+
+  useEffect(() => {
+    if (initialCategory && initialCategory !== 'All') {
+      const matchedRaw = rawCategories.find(
+        (c) => c.slug.toLowerCase() === initialCategory.toLowerCase() || c.name.toLowerCase() === initialCategory.toLowerCase()
+      );
+      if (matchedRaw) {
+        setSelectedCategory(matchedRaw.name);
+      } else {
+        const matched = categories.find((c) => c.toLowerCase() === initialCategory.toLowerCase());
+        if (matched) setSelectedCategory(matched);
+      }
+    }
+  }, [initialCategory, rawCategories]);
 
   // Filter logic
   const filteredProducts = products.filter((product) => {
@@ -65,8 +79,22 @@ function ShopContent() {
     }
 
     // Category filter
-    if (selectedCategory !== 'All' && !product.name.toLowerCase().includes(selectedCategory.toLowerCase())) {
-      return false;
+    if (selectedCategory !== 'All') {
+      const matchedRaw = rawCategories.find(
+        (c) => c.name.toLowerCase() === selectedCategory.toLowerCase() || c.slug.toLowerCase() === selectedCategory.toLowerCase()
+      );
+      const catId = matchedRaw?.id;
+      const catSlug = matchedRaw?.slug;
+
+      const matchCategory =
+        (catId && product.categoryId === catId) ||
+        (catSlug && product.categoryId === catSlug) ||
+        product.name.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+        (product.categoryId && product.categoryId.toLowerCase().includes(selectedCategory.toLowerCase()));
+
+      if (!matchCategory) {
+        return false;
+      }
     }
 
     // Price filter
