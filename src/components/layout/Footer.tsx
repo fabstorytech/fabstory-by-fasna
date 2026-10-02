@@ -251,9 +251,8 @@ export default function Footer() {
                 COLLECTIONS
               </span>
               <ChevronDown
-                className={`w-3.5 h-3.5 md:hidden text-[#C7A66A] transition-transform duration-200 ${
-                  openSections.shop ? 'rotate-180' : ''
-                }`}
+                className={`w-3.5 h-3.5 md:hidden text-[#C7A66A] transition-transform duration-200 ${openSections.shop ? 'rotate-180' : ''
+                  }`}
               />
             </button>
             <div className={`transition-all duration-200 md:!block ${openSections.shop ? 'block pt-1 pb-1' : 'hidden md:block'}`}>
@@ -293,9 +292,8 @@ export default function Footer() {
                 CLIENT CARE
               </span>
               <ChevronDown
-                className={`w-3.5 h-3.5 md:hidden text-[#C7A66A] transition-transform duration-200 ${
-                  openSections.help ? 'rotate-180' : ''
-                }`}
+                className={`w-3.5 h-3.5 md:hidden text-[#C7A66A] transition-transform duration-200 ${openSections.help ? 'rotate-180' : ''
+                  }`}
               />
             </button>
             <div className={`transition-all duration-200 md:!block ${openSections.help ? 'block pt-1 pb-1' : 'hidden md:block'}`}>
@@ -331,9 +329,8 @@ export default function Footer() {
                 ATELIER CONTACT
               </span>
               <ChevronDown
-                className={`w-3.5 h-3.5 md:hidden text-[#C7A66A] transition-transform duration-200 ${
-                  openSections.contact ? 'rotate-180' : ''
-                }`}
+                className={`w-3.5 h-3.5 md:hidden text-[#C7A66A] transition-transform duration-200 ${openSections.contact ? 'rotate-180' : ''
+                  }`}
               />
             </button>
             <div className={`transition-all duration-200 md:!block ${openSections.contact ? 'block pt-1 pb-1' : 'hidden md:block'}`}>

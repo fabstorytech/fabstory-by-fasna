@@ -1,8 +1,25 @@
 import { supabase } from './client';
+import { createClient as createSupabaseDirectClient } from '@supabase/supabase-js';
 import type { Product, Category, Fabric, Order, CustomRequest } from '@/types';
 import { DEFAULT_CATEGORIES } from '@/lib/constants';
 
 export { DEFAULT_CATEGORIES };
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cwrcmppwattowaxcjkdf.supabase.co';
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  '';
+
+function getDirectClient() {
+  if (typeof window === 'undefined') {
+    return createSupabaseDirectClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  return supabase;
+}
 
 export interface SiteSettings {
   id: string;
@@ -59,21 +76,21 @@ export async function uploadImageToCloudinary(file: File): Promise<string | null
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   id: 'default',
-  heroDesktopImage: '/images/hero-latest.jpg',
-  heroMobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
+  heroDesktopImage: '',
+  heroMobileImage: '',
   heroTitle: 'Where Style Meets Your Story',
   heroSubtitle: 'Specially curated for Women',
   slide1Active: true,
-  heroDesktopImage2: '/images/mobileview/fabstore-banner2.png',
-  heroMobileImage2: '/images/mobileview/fabstore-mobilebanner2.png',
+  heroDesktopImage2: '',
+  heroMobileImage2: '',
   heroTitle2: 'Crafted with Love & Detail',
   heroSubtitle2: 'Timeless Occasion Wear & Bespoke Couture',
-  slide2Active: true,
-  heroDesktopImage3: '/images/mobileview/fabstore-banner3.png',
-  heroMobileImage3: '/images/mobileview/fabstore-mobileview3.png',
+  slide2Active: false,
+  heroDesktopImage3: '',
+  heroMobileImage3: '',
   heroTitle3: 'Designed for Every Moment',
   heroSubtitle3: 'Curated luxury & handcrafted elegance',
-  slide3Active: true,
+  slide3Active: false,
   loginImage: '/images/craftsmanship.jpg',
   loginTitle: 'Where Style\nMeets Your Story',
   loginSubtitle: 'FABSTORY BY FASNA',
@@ -82,9 +99,10 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 export async function getSiteSettings(): Promise<SiteSettings> {
   let settings = { ...DEFAULT_SITE_SETTINGS };
 
-  // 1. Direct Supabase query (works on server runtime with 0ms delay and in browser)
+  // 1. Direct Supabase query (uses service role direct client on server to bypass RLS, or anon client in browser)
   try {
-    const { data, error } = await supabase
+    const client = getDirectClient();
+    const { data, error } = await client
       .from('site_settings')
       .select('*')
       .eq('id', 'default')
@@ -94,11 +112,11 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       const mergedSettings: SiteSettings = {
         ...settings,
         id: data.id || 'default',
-        heroDesktopImage: data.hero_desktop_image !== undefined ? (data.hero_desktop_image ?? '') : settings.heroDesktopImage,
-        heroMobileImage: data.hero_mobile_image !== undefined ? (data.hero_mobile_image ?? '') : settings.heroMobileImage,
+        heroDesktopImage: data.hero_desktop_image !== undefined && data.hero_desktop_image !== null ? data.hero_desktop_image : settings.heroDesktopImage,
+        heroMobileImage: data.hero_mobile_image !== undefined && data.hero_mobile_image !== null ? data.hero_mobile_image : settings.heroMobileImage,
         heroTitle: data.hero_title || settings.heroTitle,
         heroSubtitle: data.hero_subtitle || settings.heroSubtitle,
-        loginImage: data.login_image !== undefined ? (data.login_image ?? '') : settings.loginImage,
+        loginImage: data.login_image !== undefined && data.login_image !== null ? data.login_image : settings.loginImage,
         loginTitle: data.login_title || settings.loginTitle,
         loginSubtitle: data.login_subtitle || settings.loginSubtitle,
       };
