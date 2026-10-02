@@ -24,19 +24,12 @@ export default function Hero() {
     });
   }, []);
 
-  const desktopImg1 = settings.heroDesktopImage || '/images/hero-latest.jpg';
-  const mobileImg1 =
-    settings.heroMobileImage &&
-    settings.heroMobileImage !== '/images/hero-mobile.jpg' &&
-    settings.heroMobileImage !== '/images/mobileview/fabstore-mobilebanner.png'
-      ? settings.heroMobileImage
-      : '/images/mobileview/fabstore-mobilebanner1.png';
-
-  const desktopImg2 = settings.heroDesktopImage2 || '/images/mobileview/fabstore-banner2.png';
-  const mobileImg2 = settings.heroMobileImage2 || '/images/mobileview/fabstore-mobilebanner2.png';
-
-  const desktopImg3 = settings.heroDesktopImage3 || '/images/mobileview/fabstore-banner3.png';
-  const mobileImg3 = settings.heroMobileImage3 || '/images/mobileview/fabstore-mobileview3.png';
+  const desktopImg1 = settings.heroDesktopImage;
+  const mobileImg1 = settings.heroMobileImage;
+  const desktopImg2 = settings.heroDesktopImage2;
+  const mobileImg2 = settings.heroMobileImage2;
+  const desktopImg3 = settings.heroDesktopImage3;
+  const mobileImg3 = settings.heroMobileImage3;
 
   const title1 = settings.heroTitle || 'Where Style Meets Your Story';
   const subtitle1 = settings.heroSubtitle || 'Specially curated for Women';
@@ -45,54 +38,102 @@ export default function Hero() {
   const title3 = settings.heroTitle3 || 'Designed for Every Moment';
   const subtitle3 = settings.heroSubtitle3 || 'Curated luxury & handcrafted elegance';
 
-  const slides = [
-    {
+  // Construct active slides dynamically
+  const activeSlides: Array<{
+    id: number;
+    desktopImage: string;
+    mobileImage: string;
+    tag: string;
+    title: string;
+    subtitle: string;
+    primaryCta: { text: string; href: string };
+    secondaryCta: { text: string; href: string };
+  }> = [];
+
+  // Slide 1 (Primary Showcase)
+  if (settings.slide1Active !== false && (desktopImg1 || mobileImg1 || settings.heroDesktopImage !== '')) {
+    activeSlides.push({
       id: 1,
-      desktopImage: desktopImg1,
-      mobileImage: mobileImg1,
+      desktopImage: desktopImg1 || '/images/hero-latest.jpg',
+      mobileImage: mobileImg1 || '/images/mobileview/fabstore-mobilebanner1.png',
       tag: 'FABSTORY BY FASNA',
       title: title1,
       subtitle: subtitle1,
       primaryCta: { text: 'EXPLORE COLLECTION', href: '/shop' },
       secondaryCta: { text: 'CREATE YOUR LOOK', href: '/custom-made' },
-    },
-    {
+    });
+  }
+
+  // Slide 2 (New Arrivals)
+  if (
+    settings.slide2Active !== false &&
+    desktopImg2 &&
+    desktopImg2.trim() !== '' &&
+    desktopImg2 !== 'REMOVED'
+  ) {
+    activeSlides.push({
       id: 2,
       desktopImage: desktopImg2,
-      mobileImage: mobileImg2,
+      mobileImage: mobileImg2 && mobileImg2.trim() !== '' && mobileImg2 !== 'REMOVED' ? mobileImg2 : desktopImg2,
       tag: 'NEW SEASON COLLECTION',
       title: title2,
       subtitle: subtitle2,
       primaryCta: { text: 'SHOP NEW ARRIVALS', href: '/shop' },
       secondaryCta: { text: 'CUSTOM STITCHING', href: '/custom-made' },
-    },
-    {
+    });
+  }
+
+  // Slide 3 (Occasion Wear)
+  if (
+    settings.slide3Active !== false &&
+    desktopImg3 &&
+    desktopImg3.trim() !== '' &&
+    desktopImg3 !== 'REMOVED'
+  ) {
+    activeSlides.push({
       id: 3,
       desktopImage: desktopImg3,
-      mobileImage: mobileImg3,
+      mobileImage: mobileImg3 && mobileImg3.trim() !== '' && mobileImg3 !== 'REMOVED' ? mobileImg3 : desktopImg3,
       tag: 'ELEGANT STYLES',
       title: title3,
       subtitle: subtitle3,
       primaryCta: { text: 'DISCOVER MORE', href: '/shop' },
       secondaryCta: { text: 'BOOK CONSULTATION', href: '/custom-made' },
+    });
+  }
+
+  // Fallback to primary slide if all slides were disabled
+  const slides = activeSlides.length > 0 ? activeSlides : [
+    {
+      id: 1,
+      desktopImage: '/images/hero-latest.jpg',
+      mobileImage: '/images/mobileview/fabstore-mobilebanner1.png',
+      tag: 'FABSTORY BY FASNA',
+      title: 'Where Style Meets Your Story',
+      subtitle: 'Specially curated for Women',
+      primaryCta: { text: 'EXPLORE COLLECTION', href: '/shop' },
+      secondaryCta: { text: 'CREATE YOUR LOOK', href: '/custom-made' },
     },
   ];
 
   const nextSlide = useCallback(() => {
+    if (slides.length <= 1) return;
     setCurrentSlide((prev) => (prev + 1) % slides.length);
   }, [slides.length]);
 
   const prevSlide = useCallback(() => {
+    if (slides.length <= 1) return;
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   }, [slides.length]);
 
-  // Automatic slide swap every 3.5 seconds
+  // Automatic slide swap every 3.5 seconds (only when multi-slide)
   useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
       nextSlide();
     }, 3500);
     return () => clearInterval(timer);
-  }, [nextSlide]);
+  }, [nextSlide, slides.length]);
 
   return (
     <section className="relative min-h-[520px] sm:min-h-[580px] md:min-h-[640px] lg:min-h-[700px] flex items-center overflow-hidden -mt-28 sm:-mt-32 md:-mt-36 pt-28 sm:pt-32 md:pt-36 border-b border-[#E5E0D8] group">
@@ -134,43 +175,48 @@ export default function Hero() {
       </div>
 
       {/* Hero Content Overlay */}
-      <div className="container-wide w-full px-4 sm:px-6 lg:px-12 py-10 md:py-20 lg:py-24 z-20 relative">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          {/* Left Text & CTA Area */}
-          <div className="lg:col-span-6 space-y-5 sm:space-y-6 md:space-y-8 max-w-lg lg:max-w-xl text-left">
-            <div className="space-y-3 sm:space-y-4 min-h-[140px] sm:min-h-[170px] flex flex-col justify-center">
-              <span className="text-xs uppercase tracking-[0.25em] text-[#C7A66A] font-semibold block transition-all duration-300">
-                {slides[currentSlide].tag}
-              </span>
-              <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-[#23484A] leading-[1.08] font-medium tracking-tight transition-all duration-300">
-                {slides[currentSlide].title}
-              </h1>
+      {(() => {
+        const activeSlide = slides[currentSlide % slides.length] || slides[0];
+        return (
+          <div className="container-wide w-full px-4 sm:px-6 lg:px-12 py-10 md:py-20 lg:py-24 z-20 relative">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              {/* Left Text & CTA Area */}
+              <div className="lg:col-span-6 space-y-5 sm:space-y-6 md:space-y-8 max-w-lg lg:max-w-xl text-left">
+                <div className="space-y-3 sm:space-y-4 min-h-[140px] sm:min-h-[170px] flex flex-col justify-center">
+                  <span className="text-xs uppercase tracking-[0.25em] text-[#C7A66A] font-semibold block transition-all duration-300">
+                    {activeSlide.tag}
+                  </span>
+                  <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-[#23484A] leading-[1.08] font-medium tracking-tight transition-all duration-300">
+                    {activeSlide.title}
+                  </h1>
 
-              <div className="flex items-center gap-3 sm:gap-4 pt-1 sm:pt-2">
-                <div className="w-[2px] h-7 sm:h-8 bg-[#23484A]/60" />
-                <p className="text-sm sm:text-base md:text-lg text-[#243234] font-sans font-semibold transition-all duration-300">
-                  {slides[currentSlide].subtitle}
-                </p>
+                  <div className="flex items-center gap-3 sm:gap-4 pt-1 sm:pt-2">
+                    <div className="w-[2px] h-7 sm:h-8 bg-[#23484A]/60" />
+                    <p className="text-sm sm:text-base md:text-lg text-[#243234] font-sans font-semibold transition-all duration-300">
+                      {activeSlide.subtitle}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <Link
+                    href={activeSlide.primaryCta.href}
+                    className="btn bg-[#23484A] hover:bg-[#1A3536] text-white px-6 sm:px-8 py-3 sm:py-3.5 text-xs font-semibold uppercase tracking-[0.18em] border border-[#23484A] shadow-xs inline-block"
+                  >
+                    {activeSlide.primaryCta.text}
+                  </Link>
+                  <Link
+                    href={activeSlide.secondaryCta.href}
+                    className="btn border-[#23484A] text-[#23484A] hover:bg-[#23484A] hover:text-white px-6 sm:px-8 py-3 sm:py-3.5 text-xs font-semibold uppercase tracking-[0.18em] transition-colors inline-block"
+                  >
+                    {activeSlide.secondaryCta.text}
+                  </Link>
+                </div>
               </div>
             </div>
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              <Link
-                href={slides[currentSlide].primaryCta.href}
-                className="btn bg-[#23484A] hover:bg-[#1A3536] text-white px-6 sm:px-8 py-3 sm:py-3.5 text-xs font-semibold uppercase tracking-[0.18em] border border-[#23484A] shadow-xs inline-block"
-              >
-                {slides[currentSlide].primaryCta.text}
-              </Link>
-              <Link
-                href={slides[currentSlide].secondaryCta.href}
-                className="btn border-[#23484A] text-[#23484A] hover:bg-[#23484A] hover:text-white px-6 sm:px-8 py-3 sm:py-3.5 text-xs font-semibold uppercase tracking-[0.18em] transition-colors inline-block"
-              >
-                {slides[currentSlide].secondaryCta.text}
-              </Link>
-            </div>
           </div>
-        </div>
-      </div>
+        );
+      })()}
     </section>
   );
 }
