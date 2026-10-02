@@ -104,6 +104,20 @@ export default function AdminDashboardPage() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Floating Toast / Success Popup State
+  const [toast, setToast] = useState<{
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+  } | null>(null);
+
+  const showToast = (title: string, message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ type, title, message });
+    setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
+
   // Category CMS State
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -315,6 +329,7 @@ export default function AdminDashboardPage() {
     if (ok) {
       setSiteSettings(newSettings);
       setSettingsMessage({ type: 'success', text: 'All banners and site CMS settings updated successfully!' });
+      showToast('Changes Saved', 'All banners and site CMS settings updated successfully!', 'success');
       setDesktopHeroFile(null);
       setMobileHeroFile(null);
       setDesktopHero2File(null);
@@ -331,6 +346,7 @@ export default function AdminDashboardPage() {
       setLoginHeroPreview(null);
     } else {
       setSettingsMessage({ type: 'error', text: 'Failed to update site settings.' });
+      showToast('Save Failed', 'Failed to update site settings. Please check connection.', 'error');
     }
   };
 
@@ -356,6 +372,7 @@ export default function AdminDashboardPage() {
       setMobileHero3Preview(null);
       setLoginHeroPreview(null);
       setSettingsMessage({ type: 'success', text: 'Restored original curated 3 banners successfully!' });
+      showToast('Reset Complete', 'Banners restored to original boutique defaults.', 'success');
     }
   };
 
@@ -459,13 +476,15 @@ export default function AdminDashboardPage() {
 
       if (res.success) {
         setFormMessage({ type: 'success', text: 'Product updated successfully!' });
+        showToast('Success', 'Product updated successfully!', 'success');
         setTimeout(() => {
           setIsAddModalOpen(false);
           setFormMessage(null);
           loadAdminData();
-        }, 1000);
+        }, 800);
       } else {
         setFormMessage({ type: 'error', text: res.error || 'Failed to update product.' });
+        showToast('Error', res.error || 'Failed to update product.', 'error');
       }
     } else {
       const res = await createProduct({
@@ -485,14 +504,16 @@ export default function AdminDashboardPage() {
       setIsUploading(false);
 
       if (res.success) {
-        setFormMessage({ type: 'success', text: 'Product & 3 photos saved to Cloudinary & DB successfully!' });
+        setFormMessage({ type: 'success', text: 'Product saved successfully!' });
+        showToast('Success', 'Product created and saved successfully!', 'success');
         setTimeout(() => {
           setIsAddModalOpen(false);
           setFormMessage(null);
           loadAdminData();
-        }, 1000);
+        }, 800);
       } else {
         setFormMessage({ type: 'error', text: res.error || 'Failed to create product.' });
+        showToast('Error', res.error || 'Failed to create product.', 'error');
       }
     }
   };
@@ -500,6 +521,7 @@ export default function AdminDashboardPage() {
   const handleDeleteProduct = async (id: string) => {
     if (confirm('Are you sure you want to delete this product?')) {
       await deleteProduct(id);
+      showToast('Deleted', 'Product removed from catalog.', 'info');
       loadAdminData();
     }
   };
@@ -570,13 +592,15 @@ export default function AdminDashboardPage() {
 
     if (res.success) {
       setCategoryMessage({ type: 'success', text: `Category ${editingCategory ? 'updated' : 'created'} successfully!` });
+      showToast('Success', `Category ${editingCategory ? 'updated' : 'created'} successfully!`, 'success');
       setTimeout(() => {
         setIsCategoryModalOpen(false);
         setCategoryMessage(null);
         loadAdminData();
-      }, 1000);
+      }, 800);
     } else {
       setCategoryMessage({ type: 'error', text: res.error || 'Failed to save category.' });
+      showToast('Error', res.error || 'Failed to save category.', 'error');
     }
   };
 
@@ -584,9 +608,10 @@ export default function AdminDashboardPage() {
     if (confirm(`Are you sure you want to delete category "${name}"? This will not delete products in this category.`)) {
       const ok = await deleteCategory(id);
       if (ok) {
+        showToast('Deleted', `Category "${name}" removed.`, 'info');
         loadAdminData();
       } else {
-        alert('Failed to delete category');
+        showToast('Error', 'Failed to delete category.', 'error');
       }
     }
   };
@@ -597,9 +622,10 @@ export default function AdminDashboardPage() {
       const res = await seedDefaultCategories();
       setIsRestoringCategories(false);
       if (res.success) {
+        showToast('Synced', 'Default categories synchronized successfully.', 'success');
         await loadAdminData();
       } else {
-        alert(res.error || 'Failed to restore default categories');
+        showToast('Error', res.error || 'Failed to restore default categories.', 'error');
       }
     }
   };
@@ -648,7 +674,51 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#F8F5EF] text-[#243234]">
+    <div className="min-h-screen flex bg-[#F8F5EF] text-[#243234] relative">
+      {/* Floating Success / Status Popup Message */}
+      {toast && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[100] transition-all duration-300 pointer-events-auto px-4 w-full max-w-md animate-in fade-in slide-in-from-top-4">
+          <div
+            className={`flex items-center gap-3 px-4 py-3 rounded-xs shadow-2xl border ${
+              toast.type === 'success'
+                ? 'bg-[#23484A] text-white border-[#C7A66A]/60'
+                : toast.type === 'error'
+                ? 'bg-[#4A1D24] text-white border-rose-500/50'
+                : 'bg-[#243234] text-white border-white/20'
+            }`}
+          >
+            <div
+              className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                toast.type === 'success'
+                  ? 'bg-[#C7A66A]/20 text-[#C7A66A]'
+                  : toast.type === 'error'
+                  ? 'bg-rose-500/20 text-rose-300'
+                  : 'bg-white/10 text-white'
+              }`}
+            >
+              {toast.type === 'success' ? (
+                <CheckCircle className="w-4 h-4 text-[#C7A66A]" />
+              ) : (
+                <X className="w-4 h-4" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 pr-1">
+              <p className="font-semibold text-xs tracking-wider uppercase text-[#F8F5EF]">
+                {toast.title}
+              </p>
+              <p className="text-xs text-[#FAF8F5]/90 line-clamp-2">{toast.message}</p>
+            </div>
+            <button
+              onClick={() => setToast(null)}
+              className="text-white/60 hover:text-white p-1 transition-colors cursor-pointer shrink-0"
+              aria-label="Close"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Drawer Overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden flex">
@@ -1230,10 +1300,10 @@ export default function AdminDashboardPage() {
                   <p className="text-xs text-[#6F7775]">No products created yet. Upload your first product below.</p>
                   <button
                     onClick={() => setIsAddModalOpen(true)}
-                    className="btn bg-[#23484A] text-white text-xs font-semibold px-4 py-2 rounded-xs inline-flex items-center gap-1.5"
+                    className="btn bg-[#23484A] text-white text-xs font-semibold px-4 py-2 rounded-xs inline-flex items-center gap-1.5 cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Upload Product to Cloudinary</span>
+                    <span>Add Product</span>
                   </button>
                 </div>
               ) : (
@@ -1391,7 +1461,7 @@ export default function AdminDashboardPage() {
                   className="btn bg-[#23484A] text-white text-xs font-semibold px-4 py-2 rounded-xs inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Upload Product to Cloudinary</span>
+                  <span>Add Product</span>
                 </button>
               </div>
             ) : (
@@ -2169,10 +2239,10 @@ export default function AdminDashboardPage() {
                 <button
                   type="submit"
                   disabled={isSavingSettings}
-                  className="w-full sm:w-auto btn bg-[#23484A] hover:bg-[#1A3536] text-white px-6 py-2.5 rounded-2xs font-semibold uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2 shadow-xs transition-colors"
+                  className="w-full sm:w-auto btn bg-[#23484A] hover:bg-[#1A3536] text-white px-6 py-2.5 rounded-2xs font-semibold uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
                 >
                   {isSavingSettings && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{isSavingSettings ? 'Uploading & Saving to Cloudinary...' : 'Save All Banners & Settings'}</span>
+                  <span>{isSavingSettings ? 'Saving Changes...' : 'Save Changes'}</span>
                 </button>
               </div>
             </form>
@@ -2653,11 +2723,7 @@ export default function AdminDashboardPage() {
                 >
                   {isUploading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>
-                    {isUploading
-                      ? 'Saving to Cloudinary & DB...'
-                      : editingProductId
-                      ? 'Update Product'
-                      : 'Upload & Save Product'}
+                    {isUploading ? 'Saving Changes...' : 'Save Changes'}
                   </span>
                 </button>
               </div>
@@ -2880,7 +2946,7 @@ export default function AdminDashboardPage() {
                   className="w-full sm:w-auto btn bg-[#23484A] hover:bg-[#1A3536] text-white px-5 py-2 rounded-2xs font-semibold uppercase tracking-wider disabled:opacity-50 flex items-center justify-center gap-2 transition-colors cursor-pointer"
                 >
                   {isCategoryUploading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{isCategoryUploading ? 'Saving Category...' : editingCategory ? 'Update Category' : 'Create Category'}</span>
+                  <span>{isCategoryUploading ? 'Saving Changes...' : 'Save Changes'}</span>
                 </button>
               </div>
             </form>
