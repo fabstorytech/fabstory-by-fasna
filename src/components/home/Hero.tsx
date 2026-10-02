@@ -181,33 +181,33 @@ export default function Hero() {
           <div className="container-wide w-full px-4 sm:px-6 lg:px-12 py-10 md:py-20 lg:py-24 z-20 relative">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               {/* Left Text & CTA Area */}
-              <div className="lg:col-span-6 space-y-5 sm:space-y-6 md:space-y-8 max-w-lg lg:max-w-xl text-left">
-                <div className="space-y-3 sm:space-y-4 min-h-[140px] sm:min-h-[170px] flex flex-col justify-center">
-                  <span className="text-xs uppercase tracking-[0.25em] text-[#C7A66A] font-semibold block transition-all duration-300">
+              <div className="lg:col-span-6 space-y-4 sm:space-y-6 md:space-y-8 max-w-[280px] xs:max-w-[340px] sm:max-w-lg lg:max-w-xl text-left">
+                <div className="space-y-2.5 sm:space-y-4 min-h-[140px] sm:min-h-[170px] flex flex-col justify-center">
+                  <span className="text-[11px] sm:text-xs uppercase tracking-[0.22em] text-[#C7A66A] font-semibold block transition-all duration-300">
                     {activeSlide.tag}
                   </span>
-                  <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl lg:text-7xl text-[#23484A] leading-[1.08] font-medium tracking-tight transition-all duration-300">
+                  <h1 className="font-serif text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-[#23484A] leading-[1.12] sm:leading-[1.08] font-medium tracking-tight transition-all duration-300 [text-wrap:balance] whitespace-pre-line max-w-[260px] xs:max-w-[320px] sm:max-w-none">
                     {activeSlide.title}
                   </h1>
 
-                  <div className="flex items-center gap-3 sm:gap-4 pt-1 sm:pt-2">
-                    <div className="w-[2px] h-7 sm:h-8 bg-[#23484A]/60" />
-                    <p className="text-sm sm:text-base md:text-lg text-[#243234] font-sans font-semibold transition-all duration-300">
+                  <div className="flex items-start sm:items-center gap-2.5 sm:gap-4 pt-1 sm:pt-2">
+                    <div className="w-[2px] h-6 sm:h-8 bg-[#23484A]/60 shrink-0 mt-0.5 sm:mt-0" />
+                    <p className="text-xs sm:text-base md:text-lg text-[#243234] font-sans font-semibold transition-all duration-300 [text-wrap:balance] whitespace-pre-line max-w-[240px] xs:max-w-[300px] sm:max-w-none">
                       {activeSlide.subtitle}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 pt-2">
+                <div className="flex flex-wrap gap-2.5 sm:gap-3 pt-1 sm:pt-2">
                   <Link
                     href={activeSlide.primaryCta.href}
-                    className="btn bg-[#23484A] hover:bg-[#1A3536] text-white px-6 sm:px-8 py-3 sm:py-3.5 text-xs font-semibold uppercase tracking-[0.18em] border border-[#23484A] shadow-xs inline-block"
+                    className="btn bg-[#23484A] hover:bg-[#1A3536] text-white px-5 sm:px-8 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.18em] border border-[#23484A] shadow-xs inline-block"
                   >
                     {activeSlide.primaryCta.text}
                   </Link>
                   <Link
                     href={activeSlide.secondaryCta.href}
-                    className="btn border-[#23484A] text-[#23484A] hover:bg-[#23484A] hover:text-white px-6 sm:px-8 py-3 sm:py-3.5 text-xs font-semibold uppercase tracking-[0.18em] transition-colors inline-block"
+                    className="btn border-[#23484A] text-[#23484A] hover:bg-[#23484A] hover:text-white px-5 sm:px-8 py-2.5 sm:py-3.5 text-[11px] sm:text-xs font-semibold uppercase tracking-[0.18em] transition-colors inline-block"
                   >
                     {activeSlide.secondaryCta.text}
                   </Link>

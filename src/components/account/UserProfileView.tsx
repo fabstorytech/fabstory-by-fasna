@@ -813,16 +813,19 @@ export default function UserProfileView({
                   <span className="text-[10px] uppercase tracking-[0.2em] text-[#C7A66A] font-semibold block">
                     ATELIER CONCIERGE
                   </span>
-                  <h3 className="font-serif text-xl sm:text-2xl text-white">
+                  <h3
+                    className="font-serif text-xl sm:text-2xl !text-[#FDFBF7]"
+                    style={{ color: '#FDFBF7' }}
+                  >
                     Need Styling or Tailoring Advice?
                   </h3>
-                  <p className="text-xs text-white/80 leading-relaxed">
+                  <p className="text-xs text-[#CBD8D7] leading-relaxed">
                     Connect directly with Fasna and our couture styling team on WhatsApp for bespoke fabric consultations and rush order requests.
                   </p>
                 </div>
 
                 <a
-                  href={`https://wa.me/919876543210?text=${encodeURIComponent(
+                  href={`https://wa.me/${BRAND.whatsappNumber}?text=${encodeURIComponent(
                     `Hello Fabstory Team! I am ${fullName}, reaching out regarding my bespoke styling assistance.`
                   )}`}
                   target="_blank"
