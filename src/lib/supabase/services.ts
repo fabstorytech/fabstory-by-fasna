@@ -82,7 +82,53 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 export async function getSiteSettings(): Promise<SiteSettings> {
   let settings = { ...DEFAULT_SITE_SETTINGS };
 
-  // Read local storage overrides first if available in browser
+  // 1. Try to fetch from server-side API route (handles RLS bypass and fresh live DB data on Vercel)
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/admin/site-settings', {
+        method: 'GET',
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.settings) {
+          const data = json.settings;
+          const merged: SiteSettings = {
+            ...settings,
+            id: data.id || 'default',
+            heroDesktopImage: data.hero_desktop_image !== undefined ? (data.hero_desktop_image ?? '') : settings.heroDesktopImage,
+            heroMobileImage: data.hero_mobile_image !== undefined ? (data.hero_mobile_image ?? '') : settings.heroMobileImage,
+            heroTitle: data.hero_title || settings.heroTitle,
+            heroSubtitle: data.hero_subtitle || settings.heroSubtitle,
+            loginImage: data.login_image !== undefined ? (data.login_image ?? '') : settings.loginImage,
+            loginTitle: data.login_title || settings.loginTitle,
+            loginSubtitle: data.login_subtitle || settings.loginSubtitle,
+          };
+
+          if (data.slide1_active !== undefined) merged.slide1Active = Boolean(data.slide1_active);
+          if (data.hero_desktop_image_2 !== undefined) merged.heroDesktopImage2 = data.hero_desktop_image_2 ?? '';
+          if (data.hero_mobile_image_2 !== undefined) merged.heroMobileImage2 = data.hero_mobile_image_2 ?? '';
+          if (data.hero_title_2) merged.heroTitle2 = data.hero_title_2;
+          if (data.hero_subtitle_2) merged.heroSubtitle2 = data.hero_subtitle_2;
+          if (data.slide2_active !== undefined) merged.slide2Active = Boolean(data.slide2_active);
+
+          if (data.hero_desktop_image_3 !== undefined) merged.heroDesktopImage3 = data.hero_desktop_image_3 ?? '';
+          if (data.hero_mobile_image_3 !== undefined) merged.heroMobileImage3 = data.hero_mobile_image_3 ?? '';
+          if (data.hero_title_3) merged.heroTitle3 = data.hero_title_3;
+          if (data.hero_subtitle_3) merged.heroSubtitle3 = data.hero_subtitle_3;
+          if (data.slide3_active !== undefined) merged.slide3Active = Boolean(data.slide3_active);
+
+          try {
+            localStorage.setItem('fabstory_site_settings', JSON.stringify(merged));
+          } catch (_) {}
+
+          return merged;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 2. Read local storage cache if available
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('fabstory_site_settings');
@@ -92,12 +138,13 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     } catch (_) {}
   }
 
+  // 3. Fallback to direct Supabase client query
   try {
     const { data, error } = await supabase
       .from('site_settings')
       .select('*')
       .eq('id', 'default')
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       return settings;
@@ -137,7 +184,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 
 export async function updateSiteSettings(settings: Partial<SiteSettings>): Promise<boolean> {
   try {
-    // Persist immediately in localStorage so changes take effect across tabs instantly
+    // 1. Persist immediately in localStorage for instant responsiveness
     if (typeof window !== 'undefined') {
       try {
         const current = localStorage.getItem('fabstory_site_settings');
@@ -146,7 +193,24 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>): Promi
       } catch (_) {}
     }
 
-    // Try full upsert with extended banner columns first
+    // 2. Persist to Supabase via server-side API endpoint (uses Service Role to bypass any RLS locks)
+    if (typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/admin/site-settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ settings }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          return true;
+        }
+      } catch (apiErr) {
+        console.warn('[updateSiteSettings] API call error, falling back to direct Supabase client:', apiErr);
+      }
+    }
+
+    // 3. Fallback direct client upsert
     const fullPayload: any = {
       id: 'default',
       hero_desktop_image: settings.heroDesktopImage,
@@ -157,7 +221,6 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>): Promi
     };
 
     if (settings.slide1Active !== undefined) fullPayload.slide1_active = settings.slide1Active;
-
     if (settings.heroDesktopImage2 !== undefined) fullPayload.hero_desktop_image_2 = settings.heroDesktopImage2;
     if (settings.heroMobileImage2 !== undefined) fullPayload.hero_mobile_image_2 = settings.heroMobileImage2;
     if (settings.heroTitle2 !== undefined) fullPayload.hero_title_2 = settings.heroTitle2;
@@ -174,11 +237,9 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>): Promi
     if (settings.loginTitle !== undefined) fullPayload.login_title = settings.loginTitle;
     if (settings.loginSubtitle !== undefined) fullPayload.login_subtitle = settings.loginSubtitle;
 
-    const { error } = await supabase.from('site_settings').upsert([fullPayload]);
+    const { error } = await supabase.from('site_settings').upsert([fullPayload], { onConflict: 'id' });
 
     if (error) {
-      // In case Postgres table schema doesn't have the extended _2 and _3 columns, fallback to basic schema
-      console.warn('Extended columns upsert failed, falling back to core columns:', error.message);
       const corePayload: any = {
         id: 'default',
         hero_desktop_image: settings.heroDesktopImage,
@@ -191,7 +252,7 @@ export async function updateSiteSettings(settings: Partial<SiteSettings>): Promi
       if (settings.loginTitle !== undefined) corePayload.login_title = settings.loginTitle;
       if (settings.loginSubtitle !== undefined) corePayload.login_subtitle = settings.loginSubtitle;
 
-      await supabase.from('site_settings').upsert([corePayload]);
+      await supabase.from('site_settings').upsert([corePayload], { onConflict: 'id' });
     }
 
     return true;
