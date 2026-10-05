@@ -10,28 +10,21 @@ interface HeroProps {
 }
 
 export default function Hero({ initialSettings }: HeroProps) {
-  const [settings, setSettings] = useState<SiteSettings>(() => {
-    if (initialSettings && initialSettings.heroDesktopImage && initialSettings.heroDesktopImage.trim() !== '') {
-      return initialSettings;
-    }
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('fabstory_site_settings');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && parsed.heroDesktopImage && parsed.heroDesktopImage.trim() !== '') return parsed;
-        }
-      } catch (_) {}
-    }
-    return initialSettings || DEFAULT_SITE_SETTINGS;
-  });
+  // Always start with initialSettings (server-fetched) or defaults for instant render
+  const [settings, setSettings] = useState<SiteSettings>(initialSettings || DEFAULT_SITE_SETTINGS);
 
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
+    // Always fetch fresh from Supabase on mount — this ensures admin-uploaded
+    // banners always override any server-side defaults or localStorage cache
     getSiteSettings().then((data) => {
       if (data) {
         setSettings(data);
+        // Keep localStorage in sync for offline resilience
+        try {
+          localStorage.setItem('fabstory_site_settings', JSON.stringify(data));
+        } catch (_) {}
       }
     });
   }, []);
