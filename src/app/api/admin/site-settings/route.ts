@@ -2,22 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cwrcmppwattowaxcjkdf.supabase.co';
-const serviceRoleKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  '';
 
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
-});
+function getAdminClient() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return createClient(supabaseUrl, serviceRoleKey || supabaseUrl, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await getAdminClient()
       .from('site_settings')
       .select('*')
       .eq('id', 'default')
@@ -77,7 +75,7 @@ export async function POST(req: NextRequest) {
     if (settings.loginSubtitle !== undefined) fullPayload.login_subtitle = settings.loginSubtitle;
 
     // Upsert using Supabase Service Role client to bypass RLS restrictions
-    let { data, error } = await supabaseAdmin
+    let { data, error } = await getAdminClient()
       .from('site_settings')
       .upsert([fullPayload], { onConflict: 'id' })
       .select();
@@ -96,7 +94,7 @@ export async function POST(req: NextRequest) {
       if (settings.loginTitle !== undefined) corePayload.login_title = settings.loginTitle;
       if (settings.loginSubtitle !== undefined) corePayload.login_subtitle = settings.loginSubtitle;
 
-      const retryRes = await supabaseAdmin
+      const retryRes = await getAdminClient()
         .from('site_settings')
         .upsert([corePayload], { onConflict: 'id' })
         .select();

@@ -6,15 +6,13 @@ import { DEFAULT_CATEGORIES } from '@/lib/constants';
 export { DEFAULT_CATEGORIES };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cwrcmppwattowaxcjkdf.supabase.co';
-const SUPABASE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  '';
 
 function getDirectClient() {
   if (typeof window === 'undefined') {
-    return createSupabaseDirectClient(SUPABASE_URL, SUPABASE_KEY, {
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    // Fall back to public URL as a dummy non-empty key to satisfy the client constructor;
+    // actual service-role calls will fail gracefully if the key is absent.
+    return createSupabaseDirectClient(SUPABASE_URL, key || SUPABASE_URL, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
   }
@@ -76,8 +74,8 @@ export async function uploadImageToCloudinary(file: File): Promise<string | null
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   id: 'default',
-  heroDesktopImage: '',
-  heroMobileImage: '',
+  heroDesktopImage: '/images/hero-new.jpg',
+  heroMobileImage: '/images/hero-mobile.jpg',
   heroTitle: 'Where Style Meets Your Story',
   heroSubtitle: 'Specially curated for Women',
   slide1Active: true,
@@ -112,11 +110,11 @@ export async function getSiteSettings(): Promise<SiteSettings> {
       const mergedSettings: SiteSettings = {
         ...settings,
         id: data.id || 'default',
-        heroDesktopImage: data.hero_desktop_image !== undefined && data.hero_desktop_image !== null ? data.hero_desktop_image : settings.heroDesktopImage,
-        heroMobileImage: data.hero_mobile_image !== undefined && data.hero_mobile_image !== null ? data.hero_mobile_image : settings.heroMobileImage,
+        heroDesktopImage: data.hero_desktop_image ? data.hero_desktop_image : settings.heroDesktopImage,
+        heroMobileImage: data.hero_mobile_image ? data.hero_mobile_image : (data.hero_desktop_image || settings.heroMobileImage),
         heroTitle: data.hero_title || settings.heroTitle,
         heroSubtitle: data.hero_subtitle || settings.heroSubtitle,
-        loginImage: data.login_image !== undefined && data.login_image !== null ? data.login_image : settings.loginImage,
+        loginImage: data.login_image || settings.loginImage,
         loginTitle: data.login_title || settings.loginTitle,
         loginSubtitle: data.login_subtitle || settings.loginSubtitle,
       };
@@ -149,22 +147,23 @@ export async function getSiteSettings(): Promise<SiteSettings> {
   // 2. If in browser and direct query had an issue, query the server API endpoint
   if (typeof window !== 'undefined') {
     try {
-      const res = await fetch('/api/admin/site-settings', {
+      const res = await fetch('/api/site-settings', {
         method: 'GET',
         cache: 'no-store',
-      });
-      if (res.ok) {
+      }).catch(() => fetch('/api/admin/site-settings', { method: 'GET', cache: 'no-store' }));
+
+      if (res && res.ok) {
         const json = await res.json();
         if (json.success && json.settings) {
           const data = json.settings;
           const merged: SiteSettings = {
             ...settings,
             id: data.id || 'default',
-            heroDesktopImage: data.hero_desktop_image !== undefined ? (data.hero_desktop_image ?? '') : settings.heroDesktopImage,
-            heroMobileImage: data.hero_mobile_image !== undefined ? (data.hero_mobile_image ?? '') : settings.heroMobileImage,
+            heroDesktopImage: data.hero_desktop_image ? data.hero_desktop_image : settings.heroDesktopImage,
+            heroMobileImage: data.hero_mobile_image ? data.hero_mobile_image : (data.hero_desktop_image || settings.heroMobileImage),
             heroTitle: data.hero_title || settings.heroTitle,
             heroSubtitle: data.hero_subtitle || settings.heroSubtitle,
-            loginImage: data.login_image !== undefined ? (data.login_image ?? '') : settings.loginImage,
+            loginImage: data.login_image || settings.loginImage,
             loginTitle: data.login_title || settings.loginTitle,
             loginSubtitle: data.login_subtitle || settings.loginSubtitle,
           };
@@ -193,7 +192,31 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     try {
       const stored = localStorage.getItem('fabstory_site_settings');
       if (stored) {
-        return { ...settings, ...JSON.parse(stored) };
+        const parsed = JSON.parse(stored);
+        if (parsed) {
+          // If this device holds custom uploaded banners in localStorage, automatically sync them to Supabase
+          const hasCustomImages =
+            (parsed.heroDesktopImage && parsed.heroDesktopImage.startsWith('http')) ||
+            (parsed.heroMobileImage && parsed.heroMobileImage.startsWith('http')) ||
+            (parsed.heroDesktopImage2 && parsed.heroDesktopImage2.startsWith('http')) ||
+            (parsed.heroMobileImage2 && parsed.heroMobileImage2.startsWith('http')) ||
+            (parsed.heroDesktopImage3 && parsed.heroDesktopImage3.startsWith('http')) ||
+            (parsed.heroMobileImage3 && parsed.heroMobileImage3.startsWith('http'));
+
+          if (hasCustomImages) {
+            fetch('/api/admin/site-settings', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ settings: parsed }),
+            }).catch(() => {});
+          }
+          return {
+            ...settings,
+            ...parsed,
+            heroDesktopImage: parsed.heroDesktopImage || settings.heroDesktopImage,
+            heroMobileImage: parsed.heroMobileImage || settings.heroMobileImage,
+          };
+        }
       }
     } catch (_) {}
   }

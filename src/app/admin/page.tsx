@@ -1881,11 +1881,11 @@ export default function AdminDashboardPage() {
                       sublabel="Shown on desktop, laptop & tablet screens"
                       badge="Slide 1"
                       aspectRatio="16/9"
-                      currentImageUrl={siteSettings.heroDesktopImage}
+                      currentImageUrl={siteSettings.heroDesktopImage && siteSettings.heroDesktopImage !== '' && siteSettings.heroDesktopImage !== 'REMOVED' ? siteSettings.heroDesktopImage : '/images/hero-new.jpg'}
                       stagedFile={desktopHeroFile}
                       stagedPreviewUrl={desktopHeroPreview}
                       recommendedDimensions="1920×1080 or 1600×900 px"
-                      isRemoved={siteSettings.heroDesktopImage === '' && !desktopHeroFile}
+                      isRemoved={siteSettings.heroDesktopImage === 'REMOVED'}
                       onFileSelect={(file) => {
                         setDesktopHeroFile(file);
                         setDesktopHeroPreview(URL.createObjectURL(file));
@@ -1893,7 +1893,7 @@ export default function AdminDashboardPage() {
                       onRemove={() => {
                         setDesktopHeroFile(null);
                         setDesktopHeroPreview(null);
-                        setSiteSettings((prev) => ({ ...prev, heroDesktopImage: '' }));
+                        setSiteSettings((prev) => ({ ...prev, heroDesktopImage: 'REMOVED' }));
                       }}
                     />
 
@@ -1902,11 +1902,11 @@ export default function AdminDashboardPage() {
                       sublabel="Shown on smartphone & mobile screens"
                       badge="Slide 1"
                       aspectRatio="3/4"
-                      currentImageUrl={siteSettings.heroMobileImage}
+                      currentImageUrl={siteSettings.heroMobileImage && siteSettings.heroMobileImage !== '' && siteSettings.heroMobileImage !== 'REMOVED' ? siteSettings.heroMobileImage : '/images/hero-mobile.jpg'}
                       stagedFile={mobileHeroFile}
                       stagedPreviewUrl={mobileHeroPreview}
                       recommendedDimensions="900×1200 or 1080×1440 px"
-                      isRemoved={siteSettings.heroMobileImage === '' && !mobileHeroFile}
+                      isRemoved={siteSettings.heroMobileImage === 'REMOVED'}
                       onFileSelect={(file) => {
                         setMobileHeroFile(file);
                         setMobileHeroPreview(URL.createObjectURL(file));
@@ -1914,7 +1914,7 @@ export default function AdminDashboardPage() {
                       onRemove={() => {
                         setMobileHeroFile(null);
                         setMobileHeroPreview(null);
-                        setSiteSettings((prev) => ({ ...prev, heroMobileImage: '' }));
+                        setSiteSettings((prev) => ({ ...prev, heroMobileImage: 'REMOVED' }));
                       }}
                     />
                   </div>
@@ -2168,8 +2168,8 @@ export default function AdminDashboardPage() {
                         setMobileHero3Preview(URL.createObjectURL(file));
                       }}
                       onRemove={() => {
-                        setMobileHeroFile(null);
-                        setMobileHeroPreview(null);
+                        setMobileHero3File(null);
+                        setMobileHero3Preview(null);
                         setSiteSettings((prev) => ({ ...prev, heroMobileImage3: '' }));
                       }}
                     />

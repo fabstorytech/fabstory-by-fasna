@@ -139,6 +139,7 @@ export default function BannerImageUploader({
               src={displayUrl}
               alt={label}
               fill
+              unoptimized={displayUrl.startsWith('http') || displayUrl.startsWith('blob:')}
               className="object-cover object-center"
               sizes="(max-width: 768px) 100vw, 50vw"
             />
