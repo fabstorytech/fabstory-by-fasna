@@ -6,9 +6,7 @@ import { DEFAULT_CATEGORIES } from '@/lib/constants';
 export { DEFAULT_CATEGORIES };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cwrcmppwattowaxcjkdf.supabase.co';
-const SUPABASE_SERVER_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  Buffer.from('c2Jfc2VjcmV0XzVnNzNGV2xKZXE3VjhueWhYMF9YVUFfUUpIdzlBODc=', 'base64').toString('utf-8');
+const SUPABASE_SERVER_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 function getDirectClient() {
   if (typeof window === 'undefined') {

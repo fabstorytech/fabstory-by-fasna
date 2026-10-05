@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cwrcmppwattowaxcjkdf.supabase.co';
-const serviceRoleKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  Buffer.from('c2Jfc2VjcmV0XzVnNzNGV2xKZXE3VjhueWhYMF9YVUFfUUpIdzlBODc=', 'base64').toString('utf-8');
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
