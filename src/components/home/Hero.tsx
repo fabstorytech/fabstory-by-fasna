@@ -11,7 +11,7 @@ interface HeroProps {
 
 export default function Hero({ initialSettings }: HeroProps) {
   const [settings, setSettings] = useState<SiteSettings>(() => {
-    if (initialSettings) {
+    if (initialSettings && initialSettings.heroDesktopImage && initialSettings.heroDesktopImage.trim() !== '') {
       return initialSettings;
     }
     if (typeof window !== 'undefined') {
@@ -19,11 +19,11 @@ export default function Hero({ initialSettings }: HeroProps) {
         const cached = localStorage.getItem('fabstory_site_settings');
         if (cached) {
           const parsed = JSON.parse(cached);
-          if (parsed) return parsed;
+          if (parsed && parsed.heroDesktopImage && parsed.heroDesktopImage.trim() !== '') return parsed;
         }
       } catch (_) {}
     }
-    return DEFAULT_SITE_SETTINGS;
+    return initialSettings || DEFAULT_SITE_SETTINGS;
   });
 
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -36,8 +36,19 @@ export default function Hero({ initialSettings }: HeroProps) {
     });
   }, []);
 
-  const desktopImg1 = settings.heroDesktopImage;
-  const mobileImg1 = settings.heroMobileImage;
+  const defaultDesktop = '/images/hero-new.jpg';
+  const defaultMobile = '/images/hero-mobile.jpg';
+
+  const desktopImg1 =
+    settings.heroDesktopImage && settings.heroDesktopImage.trim() !== '' && settings.heroDesktopImage !== 'REMOVED'
+      ? settings.heroDesktopImage
+      : defaultDesktop;
+
+  const mobileImg1 =
+    settings.heroMobileImage && settings.heroMobileImage.trim() !== '' && settings.heroMobileImage !== 'REMOVED'
+      ? settings.heroMobileImage
+      : (desktopImg1 || defaultMobile);
+
   const desktopImg2 = settings.heroDesktopImage2;
   const mobileImg2 = settings.heroMobileImage2;
   const desktopImg3 = settings.heroDesktopImage3;
@@ -66,13 +77,12 @@ export default function Hero({ initialSettings }: HeroProps) {
   if (
     settings.slide1Active !== false &&
     desktopImg1 &&
-    desktopImg1.trim() !== '' &&
     desktopImg1 !== 'REMOVED'
   ) {
     activeSlides.push({
       id: 1,
       desktopImage: desktopImg1,
-      mobileImage: mobileImg1 && mobileImg1.trim() !== '' && mobileImg1 !== 'REMOVED' ? mobileImg1 : desktopImg1,
+      mobileImage: mobileImg1 && mobileImg1 !== 'REMOVED' ? mobileImg1 : desktopImg1,
       tag: 'FABSTORY BY FASNA',
       title: title1,
       subtitle: subtitle1,
@@ -123,8 +133,8 @@ export default function Hero({ initialSettings }: HeroProps) {
   const slides = activeSlides.length > 0 ? activeSlides : [
     {
       id: 1,
-      desktopImage: desktopImg1 && desktopImg1.trim() !== '' ? desktopImg1 : '',
-      mobileImage: mobileImg1 && mobileImg1.trim() !== '' ? mobileImg1 : '',
+      desktopImage: defaultDesktop,
+      mobileImage: defaultMobile,
       tag: 'FABSTORY BY FASNA',
       title: title1 || 'Where Style Meets Your Story',
       subtitle: subtitle1 || 'Specially curated for Women',
@@ -172,6 +182,7 @@ export default function Hero({ initialSettings }: HeroProps) {
                   fill
                   priority={idx === 0}
                   sizes="100vw"
+                  unoptimized={slide.desktopImage.startsWith('http')}
                   className="object-cover object-top sm:object-center"
                 />
               </div>
@@ -187,6 +198,7 @@ export default function Hero({ initialSettings }: HeroProps) {
                   fill
                   priority={idx === 0}
                   sizes="100vw"
+                  unoptimized={(slide.mobileImage || slide.desktopImage).startsWith('http')}
                   className="object-cover object-top"
                 />
               </div>
