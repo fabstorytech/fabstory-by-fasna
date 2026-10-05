@@ -6,11 +6,13 @@ import { DEFAULT_CATEGORIES } from '@/lib/constants';
 export { DEFAULT_CATEGORIES };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cwrcmppwattowaxcjkdf.supabase.co';
-const SUPABASE_SERVER_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 function getDirectClient() {
   if (typeof window === 'undefined') {
-    return createSupabaseDirectClient(SUPABASE_URL, SUPABASE_SERVER_KEY, {
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    // Fall back to public URL as a dummy non-empty key to satisfy the client constructor;
+    // actual service-role calls will fail gracefully if the key is absent.
+    return createSupabaseDirectClient(SUPABASE_URL, key || SUPABASE_URL, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
   }
