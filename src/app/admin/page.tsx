@@ -1943,34 +1943,6 @@ export default function AdminDashboardPage() {
                       <h3 className="font-serif text-base text-[#23484A]">Second Rotating Hero Slide</h3>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSiteSettings((prev) => ({
-                          ...prev,
-                          slide2Active: prev.slide2Active === false ? true : false,
-                        }))
-                      }
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-2xs border transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs ${
-                        siteSettings.slide2Active === false
-                          ? 'bg-[#23484A] text-white border-[#23484A] hover:bg-[#1A3536]'
-                          : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
-                      }`}
-                    >
-                      {siteSettings.slide2Active === false ? (
-                        <>
-                          <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Enable Slide on Storefront</span>
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Remove Banner from Storefront</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
                   {siteSettings.slide2Active === false && (
                     <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xs text-xs flex items-center gap-2">
                       <span className="font-bold">Notice:</span>
@@ -2070,34 +2042,6 @@ export default function AdminDashboardPage() {
                       </div>
                       <h3 className="font-serif text-base text-[#23484A]">Third Rotating Hero Slide</h3>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSiteSettings((prev) => ({
-                          ...prev,
-                          slide3Active: prev.slide3Active === false ? true : false,
-                        }))
-                      }
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-2xs border transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs ${
-                        siteSettings.slide3Active === false
-                          ? 'bg-[#23484A] text-white border-[#23484A] hover:bg-[#1A3536]'
-                          : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
-                      }`}
-                    >
-                      {siteSettings.slide3Active === false ? (
-                        <>
-                          <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Enable Slide on Storefront</span>
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Remove Banner from Storefront</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
 
                   {siteSettings.slide3Active === false && (
                     <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xs text-xs flex items-center gap-2">
