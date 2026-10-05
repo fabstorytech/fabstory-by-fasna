@@ -6,13 +6,18 @@ import { DEFAULT_CATEGORIES } from '@/lib/constants';
 export { DEFAULT_CATEGORIES };
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cwrcmppwattowaxcjkdf.supabase.co';
+// Anon key is always available (NEXT_PUBLIC_) on Vercel — used as fallback when service role key is absent.
+// RLS on site_settings allows public SELECT so the anon key is sufficient for reads.
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  'sb_publishable_DiFN5enKKYJMERapu9KetA_24bRba49';
 
 function getDirectClient() {
   if (typeof window === 'undefined') {
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-    // Fall back to public URL as a dummy non-empty key to satisfy the client constructor;
-    // actual service-role calls will fail gracefully if the key is absent.
-    return createSupabaseDirectClient(SUPABASE_URL, key || SUPABASE_URL, {
+    // Prefer service role key (bypasses RLS), fall back to anon key (reads work via public RLS)
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+    return createSupabaseDirectClient(SUPABASE_URL, key, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
   }
