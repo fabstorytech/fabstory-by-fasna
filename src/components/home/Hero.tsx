@@ -170,7 +170,7 @@ export default function Hero({ initialSettings }: HeroProps) {
                 priority={idx === 0}
                 sizes="100vw"
                 unoptimized
-                className="object-contain object-center"
+                className="object-cover object-center"
               />
             </div>
             {/* Mobile Banner */}
@@ -182,11 +182,10 @@ export default function Hero({ initialSettings }: HeroProps) {
                 priority={idx === 0}
                 sizes="100vw"
                 unoptimized
-                className="object-contain object-center"
+                className="object-cover object-center"
               />
             </div>
-            {/* Gradient overlay for text legibility */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#F4EFE6]/90 via-[#F4EFE6]/60 to-transparent lg:from-[#F4EFE6]/80 lg:via-[#F4EFE6]/40 lg:to-transparent" />
+
           </div>
         ))}
       </div>
