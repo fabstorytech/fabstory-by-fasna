@@ -303,4 +303,35 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- ============================================================
+-- 10. SITE SETTINGS CMS TABLE & POLICIES
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.site_settings (
+    id TEXT PRIMARY KEY DEFAULT 'default',
+    hero_desktop_image TEXT,
+    hero_mobile_image TEXT,
+    hero_title TEXT,
+    hero_subtitle TEXT,
+    slide1_active BOOLEAN DEFAULT TRUE,
+    hero_desktop_image_2 TEXT,
+    hero_mobile_image_2 TEXT,
+    hero_title_2 TEXT,
+    hero_subtitle_2 TEXT,
+    slide2_active BOOLEAN DEFAULT FALSE,
+    hero_desktop_image_3 TEXT,
+    hero_mobile_image_3 TEXT,
+    hero_title_3 TEXT,
+    hero_subtitle_3 TEXT,
+    slide3_active BOOLEAN DEFAULT FALSE,
+    login_image TEXT,
+    login_title TEXT,
+    login_subtitle TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read site_settings" ON public.site_settings FOR SELECT USING (true);
+CREATE POLICY "Allow public insert update site_settings" ON public.site_settings FOR ALL USING (true);
+
+
 

@@ -407,6 +407,7 @@ export default function LoginPage() {
               fill
               priority
               sizes="50vw"
+              unoptimized={loginImage.startsWith('http')}
               className="object-cover object-top"
             />
             {/* Rich Dark Gradient Backdrop ensuring 100% Crisp Text Visibility */}
@@ -461,6 +462,7 @@ export default function LoginPage() {
               fill
               priority
               sizes="100vw"
+              unoptimized={loginImage.startsWith('http')}
               className="object-cover object-top"
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70" />
