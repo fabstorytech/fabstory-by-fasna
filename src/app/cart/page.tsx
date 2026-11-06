@@ -133,11 +133,22 @@ export default function CartPage() {
                           <span>Size: {item.size}</span>
                         </p>
 
-                        {item.customSize && (
-                          <span className="inline-block text-[10px] text-[#23484A] bg-[#FAF8F5] border border-[#E5E0D8] px-2 py-0.5 font-medium rounded-xs">
-                            Custom Size
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                          {item.productType === 'READY_STOCK' ? (
+                            <span className="inline-block text-[9px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-xs">
+                              ⚡ Ready to Ship
+                            </span>
+                          ) : (
+                            <span className="inline-block text-[9px] font-bold text-[#23484A] bg-[#FAF8F5] border border-[#E5E0D8] px-2 py-0.5 rounded-xs">
+                              🧵 Customized Order
+                            </span>
+                          )}
+                          {item.customSize && (
+                            <span className="inline-block text-[9px] font-bold text-[#C7A66A] bg-[#F8F5EF] border border-[#C7A66A]/40 px-2 py-0.5 rounded-xs">
+                              Custom Measurements
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 

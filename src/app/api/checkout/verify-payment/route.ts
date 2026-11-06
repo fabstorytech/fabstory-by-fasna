@@ -88,6 +88,8 @@ export async function POST(req: NextRequest) {
     } else {
       // 3. Create fresh order in Supabase
       orderNumber = `FAB-${Date.now().toString().slice(-6)}`;
+      const isPaidOnline = Boolean(razorpayPaymentId);
+
       const { data: newOrder, error: insertError } = await supabase
         .from('orders')
         .insert([
@@ -99,8 +101,8 @@ export async function POST(req: NextRequest) {
             shipping_address: shippingAddress || {},
             items: items,
             total_amount: totalAmount,
-            status: 'PENDING',
-            payment_status: 'PAID',
+            status: isPaidOnline ? 'CONFIRMED' : 'PENDING',
+            payment_status: isPaidOnline ? 'PAID' : 'PENDING',
             payment_method: paymentMethod,
             razorpay_order_id: razorpayOrderId || null,
             razorpay_payment_id: razorpayPaymentId || null,

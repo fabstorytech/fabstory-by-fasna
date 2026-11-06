@@ -414,6 +414,23 @@ export default function AdminDashboardPage() {
     setIsAddModalOpen(true);
   };
 
+  const handleToggleProductType = async (prod: Product) => {
+    const nextType: 'READY_STOCK' | 'CUSTOM' = prod.type === 'READY_STOCK' ? 'CUSTOM' : 'READY_STOCK';
+    const res = await updateProduct(prod.id, { type: nextType });
+    if (res.success) {
+      showToast(
+        'Product Updated',
+        `"${prod.name}" changed to ${nextType === 'READY_STOCK' ? '⚡ Ready to Ship (Payment Gateway Active)' : '🧵 Customized Order'}`,
+        'success'
+      );
+      setProducts((prev) =>
+        prev.map((p) => (p.id === prod.id ? { ...p, type: nextType } : p))
+      );
+    } else {
+      showToast('Error', 'Failed to update product type.', 'error');
+    }
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProductName || !newProductPrice) {
@@ -1444,10 +1461,10 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setFilterType(e.target.value)}
                   className="bg-white border border-[#E5E0D8] text-xs px-3 py-1.5 rounded-2xs focus:outline-none cursor-pointer flex-1 sm:flex-initial"
                 >
-                  <option value="ALL">All Types</option>
-                  <option value="CUSTOM">Custom Made</option>
-                  <option value="READY_STOCK">Ready to Ship</option>
-                  <option value="FABRIC">Fabric</option>
+                  <option value="ALL">All Product Types</option>
+                  <option value="READY_STOCK">⚡ Ready to Ship (Payment Gateway Active)</option>
+                  <option value="CUSTOM">🧵 Customized Orders (Bespoke Sizing)</option>
+                  <option value="FABRIC">✨ Fabrics</option>
                 </select>
               </div>
             </div>
@@ -1491,9 +1508,21 @@ export default function AdminDashboardPage() {
                           </div>
                           <div className="min-w-0 space-y-0.5">
                             <div className="flex items-center gap-1 flex-wrap">
-                              <span className="text-[9px] font-bold text-[#C7A66A] uppercase tracking-wider">
-                                {prod.type}
-                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleProductType(prod)}
+                                className={`text-[9px] font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer flex items-center gap-1 ${
+                                  prod.type === 'READY_STOCK'
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                    : prod.type === 'FABRIC'
+                                    ? 'bg-[#C7A66A]/10 text-[#8C6D37] border-[#C7A66A]/30'
+                                    : 'bg-[#23484A]/10 text-[#23484A] border-[#23484A]/30 hover:bg-[#23484A]/20'
+                                }`}
+                                title="Click to toggle Ready to Ship / Customized"
+                              >
+                                <span>{prod.type === 'READY_STOCK' ? '⚡ Ready to Ship' : prod.type === 'FABRIC' ? '✨ Fabric' : '🧵 Customized'}</span>
+                                <span className="text-[8px] opacity-75">⇄</span>
+                              </button>
                               {assignedCat && (
                                 <span className="text-[9px] bg-[#C7A66A]/15 text-[#8C6D37] px-1.5 py-0.2 rounded-2xs font-medium">
                                   {assignedCat.name}
@@ -1582,9 +1611,27 @@ export default function AdminDashboardPage() {
                               )}
                             </td>
                             <td className="p-3">
-                              <span className="bg-[#23484A]/10 text-[#23484A] text-[9px] font-bold px-2 py-0.5 rounded-2xs">
-                                {prod.type}
-                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleProductType(prod)}
+                                className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition-all cursor-pointer inline-flex items-center gap-1.5 shadow-2xs ${
+                                  prod.type === 'READY_STOCK'
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                    : prod.type === 'FABRIC'
+                                    ? 'bg-[#C7A66A]/10 text-[#8C6D37] border-[#C7A66A]/30'
+                                    : 'bg-[#23484A]/10 text-[#23484A] border-[#23484A]/30 hover:bg-[#23484A]/20'
+                                }`}
+                                title="Click to switch between Ready to Ship (Razorpay) and Customized Order"
+                              >
+                                <span>
+                                  {prod.type === 'READY_STOCK'
+                                    ? '⚡ Ready to Ship (Payment Gateway)'
+                                    : prod.type === 'FABRIC'
+                                    ? '✨ Fabric'
+                                    : '🧵 Customized Order'}
+                                </span>
+                                <span className="text-[9px] text-[#6F7775]">⇄</span>
+                              </button>
                             </td>
                             <td className="p-3 font-bold text-[#23484A]">
                               ₹ {prod.price.toLocaleString('en-IN')}
@@ -2491,19 +2538,84 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-[#243234] font-semibold mb-1">Product Type</label>
-                  <select
-                    value={newProductType}
-                    onChange={(e) => setNewProductType(e.target.value as any)}
-                    className="w-full border border-[#E5E0D8] p-2.5 rounded-2xs focus:outline-none focus:border-[#23484A] bg-white"
+              {/* Product Type & Workflow Selection */}
+              <div className="space-y-1.5">
+                <label className="block text-[#243234] font-semibold text-xs">
+                  Product Type & Order Workflow *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {/* Ready to Ship */}
+                  <button
+                    type="button"
+                    onClick={() => setNewProductType('READY_STOCK')}
+                    className={`p-3 rounded-xs border text-left transition-all cursor-pointer ${
+                      newProductType === 'READY_STOCK'
+                        ? 'border-emerald-600 bg-emerald-50/80 ring-1 ring-emerald-600 shadow-2xs'
+                        : 'border-[#E5E0D8] bg-white hover:border-[#23484A]/40'
+                    }`}
                   >
-                    <option value="CUSTOM">Custom Made</option>
-                    <option value="READY_STOCK">Ready to Ship</option>
-                    <option value="FABRIC">Fabric</option>
-                  </select>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-900 flex items-center gap-1">
+                        <span>⚡</span> Ready to Ship
+                      </span>
+                      {newProductType === 'READY_STOCK' && (
+                        <span className="w-2 h-2 rounded-full bg-emerald-600" />
+                      )}
+                    </div>
+                    <p className="text-[10px] text-[#6F7775] mt-1 leading-snug">
+                      Razorpay Online Payment Gateway enabled. Pre-stitched & ready to dispatch in 24-48h.
+                    </p>
+                  </button>
+
+                  {/* Customized Order */}
+                  <button
+                    type="button"
+                    onClick={() => setNewProductType('CUSTOM')}
+                    className={`p-3 rounded-xs border text-left transition-all cursor-pointer ${
+                      newProductType === 'CUSTOM'
+                        ? 'border-[#23484A] bg-[#23484A]/5 ring-1 ring-[#23484A] shadow-2xs'
+                        : 'border-[#E5E0D8] bg-white hover:border-[#23484A]/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#23484A] flex items-center gap-1">
+                        <span>🧵</span> Customized Order
+                      </span>
+                      {newProductType === 'CUSTOM' && (
+                        <span className="w-2 h-2 rounded-full bg-[#23484A]" />
+                      )}
+                    </div>
+                    <p className="text-[10px] text-[#6F7775] mt-1 leading-snug">
+                      Bespoke tailoring. Customers submit custom measurements & WhatsApp design inquiry.
+                    </p>
+                  </button>
+
+                  {/* Fabric */}
+                  <button
+                    type="button"
+                    onClick={() => setNewProductType('FABRIC')}
+                    className={`p-3 rounded-xs border text-left transition-all cursor-pointer ${
+                      newProductType === 'FABRIC'
+                        ? 'border-[#C7A66A] bg-[#C7A66A]/10 ring-1 ring-[#C7A66A] shadow-2xs'
+                        : 'border-[#E5E0D8] bg-white hover:border-[#23484A]/40'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#8C6D37] flex items-center gap-1">
+                        <span>✨</span> Fabric
+                      </span>
+                      {newProductType === 'FABRIC' && (
+                        <span className="w-2 h-2 rounded-full bg-[#C7A66A]" />
+                      )}
+                    </div>
+                    <p className="text-[10px] text-[#6F7775] mt-1 leading-snug">
+                      Unstitched luxury raw fabric material sold per meter.
+                    </p>
+                  </button>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
                 <div>
                   <label className="block text-[#243234] font-semibold mb-1">Store Category</label>

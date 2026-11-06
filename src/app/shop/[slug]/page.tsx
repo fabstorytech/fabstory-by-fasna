@@ -151,6 +151,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
       fabric: selectedFabric,
       size: selectedSize,
       customSize: selectedSize === 'Custom',
+      productType: product.type,
       price: product.price + customizationCharge,
       quantity,
       image: imagesList[0]?.url || '/images/placeholder.jpg',
@@ -183,6 +184,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
       fabric: selectedFabric,
       size: selectedSize,
       customSize: selectedSize === 'Custom',
+      productType: product.type,
       price: product.price + customizationCharge,
       quantity,
       image: imagesList[0]?.url || '/images/placeholder.jpg',
@@ -357,6 +359,22 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
             {/* Right Product Details */}
             <div className="lg:col-span-6 bg-white p-6 md:p-8 border border-[#E5E0D8] space-y-6">
               <div>
+                <div className="mb-2.5">
+                  {product.type === 'READY_STOCK' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      ⚡ Ready to Ship • Instant Online Payment
+                    </span>
+                  ) : product.type === 'FABRIC' ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F8F5EF] text-[#C7A66A] border border-[#C7A66A]/40 shadow-2xs">
+                      ✨ Premium Fabric • Unstitched
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#23484A]/10 text-[#23484A] border border-[#23484A]/20 shadow-2xs">
+                      🧵 Customized Order • Bespoke Stitching
+                    </span>
+                  )}
+                </div>
                 <h1 className="font-serif text-3xl md:text-4xl text-[#23484A]">
                   {product.name}
                 </h1>
@@ -372,6 +390,17 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
                     </div>
                     <span className="text-[#6F7775] ml-1">(25 reviews)</span>
                   </div>
+                </div>
+                <div className="mt-2 text-[11px] font-medium text-[#6F7775]">
+                  {product.type === 'READY_STOCK' ? (
+                    <span className="text-emerald-700 flex items-center gap-1">
+                      <span>✓ In Stock</span> • <span>Ships within 24-48 Hours</span> • <span>UPI / Card / NetBanking</span>
+                    </span>
+                  ) : (
+                    <span className="text-[#23484A] flex items-center gap-1">
+                      <span>🧵 Handcrafted to Measure</span> • <span>Custom Sizing Available</span>
+                    </span>
+                  )}
                 </div>
               </div>
 

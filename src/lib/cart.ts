@@ -10,6 +10,7 @@ export interface CartItem {
   fabric: string;
   size: string;
   customSize: boolean;
+  productType?: 'READY_STOCK' | 'CUSTOM' | 'FABRIC';
   price: number;
   quantity: number;
   image: string;

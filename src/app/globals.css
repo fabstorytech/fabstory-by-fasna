@@ -34,8 +34,8 @@
   --color-error: #B85450;
 
   /* Typography */
-  --font-serif: "Cormorant Garamond", "Georgia", serif;
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-cormorant), "Cormorant Garamond", Georgia, serif;
+  --font-sans: var(--font-inter), "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Font Sizes */
   --text-display: 4rem;
