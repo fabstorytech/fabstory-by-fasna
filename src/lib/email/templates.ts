@@ -24,80 +24,131 @@ interface OrderData {
   tracking_url?: string;
 }
 
+const BRAND_LOGO_URL = 'https://res.cloudinary.com/jwter84c/image/upload/v1793966507/fabstory-branding/fabstory_brand_logo.png';
+
 function baseEmailWrapper(title: string, bodyContent: string): string {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>${title}</title>
   <style>
-    body { margin: 0; padding: 0; background-color: #F8F5EF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
-    table { border-collapse: collapse; }
-    img { border: 0; display: block; outline: none; text-decoration: none; }
+    body { margin: 0; padding: 0; background-color: #F8F5EF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+    table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+    img { border: 0; display: block; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+    a { text-decoration: none; }
+    @media only screen and (max-width: 620px) {
+      .email-container { width: 100% !important; border-radius: 0 !important; }
+      .email-content { padding: 24px 18px !important; }
+      .email-header { padding: 24px 16px !important; }
+      .brand-title { font-size: 20px !important; }
+    }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #F8F5EF;">
-  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #F8F5EF; padding: 30px 15px;">
+<body style="margin: 0; padding: 0; background-color: #F8F5EF; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+  <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #F8F5EF; padding: 25px 10px;">
     <tr>
       <td align="center">
-        <!-- Main Container -->
-        <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #FFFFFF; border: 1px solid #E5E0D8; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.04);">
+        
+        <!-- Main Card Container -->
+        <table role="presentation" class="email-container" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #FFFFFF; border: 1px solid #E5E0D8; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.06);">
           
-          <!-- Top Brand Header -->
+          <!-- Luxury Brand Header (Nike / Zara / Amazon Precision) -->
           <tr>
-            <td align="center" style="background-color: #23484A; padding: 30px 20px; border-bottom: 3px solid #C7A66A;">
+            <td class="email-header" align="center" style="background: linear-gradient(180deg, #1A3536 0%, #23484A 100%); padding: 32px 24px 28px 24px; border-bottom: 3px solid #C7A66A;">
               <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                 <tr>
                   <td align="center">
-                    <span style="font-family: Georgia, serif; font-size: 24px; letter-spacing: 4px; color: #FFFFFF; font-weight: bold; text-transform: uppercase; display: block;">
-                      ${BRAND.name}
+                    
+                    <!-- Circular Brand Emblem with Gold Border -->
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                      <tr>
+                        <td align="center" style="background-color: #FFFFFF; border: 2.5px solid #C7A66A; width: 72px; height: 72px; border-radius: 50%; padding: 4px; box-shadow: 0 4px 14px rgba(0,0,0,0.22);">
+                          <img 
+                            src="${BRAND_LOGO_URL}" 
+                            alt="${BRAND.fullName}" 
+                            width="64" 
+                            height="64" 
+                            style="width: 64px; height: 64px; border-radius: 50%; object-fit: contain; display: block;"
+                          />
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Brand Typography Wordmark -->
+                    <span class="brand-title" style="font-family: Georgia, Garamond, serif; font-size: 22px; letter-spacing: 4px; color: #FFFFFF; font-weight: bold; text-transform: uppercase; display: block; line-height: 1.2;">
+                      FABSTORY
                     </span>
-                    <span style="font-size: 10px; letter-spacing: 3px; color: #C7A66A; font-weight: 600; text-transform: uppercase; display: block; margin-top: 4px;">
-                      — ${BRAND.subBrand} —
+                    <span style="font-size: 10px; letter-spacing: 3px; color: #C7A66A; font-weight: 700; text-transform: uppercase; display: block; margin-top: 3px;">
+                      BY FASNA
                     </span>
+                    <span style="font-family: Georgia, serif; font-size: 10px; letter-spacing: 1px; color: #A5BDBB; font-style: italic; display: block; margin-top: 4px;">
+                      Where Style Meets Your Story
+                    </span>
+
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Dynamic Body Content -->
+          <!-- Dynamic Email Body -->
           <tr>
-            <td style="padding: 35px 30px; color: #243234;">
+            <td class="email-content" style="padding: 36px 32px; color: #243234;">
               ${bodyContent}
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Luxury Boutique Footer -->
           <tr>
-            <td style="background-color: #FAF8F5; padding: 25px 30px; border-top: 1px solid #E5E0D8; text-align: center;">
-              <p style="margin: 0 0 8px 0; font-family: Georgia, serif; font-size: 13px; color: #23484A; font-weight: 600;">
+            <td style="background-color: #FAF8F5; padding: 28px 24px; border-top: 1px solid #E5E0D8; text-align: center;">
+              
+              <!-- Footer Mini Medallion -->
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin-bottom: 12px;">
+                <tr>
+                  <td style="border-top: 1px solid #E5E0D8; width: 60px;"></td>
+                  <td style="padding: 0 10px; color: #C7A66A; font-size: 12px;">✦</td>
+                  <td style="border-top: 1px solid #E5E0D8; width: 60px;"></td>
+                </tr>
+              </table>
+
+              <p style="margin: 0 0 6px 0; font-family: Georgia, serif; font-size: 14px; color: #23484A; font-weight: 600;">
                 ${BRAND.fullName}
               </p>
-              <p style="margin: 0 0 12px 0; font-size: 11px; color: #6F7775; line-height: 1.5;">
-                ${BRAND.description}<br>
-                ${BRAND.location} • WhatsApp: ${BRAND.whatsappDisplay}
+              <p style="margin: 0 0 14px 0; font-size: 11px; color: #6F7775; line-height: 1.6;">
+                Bespoke Couture & Luxury Ready-to-Ship Outfits<br>
+                Kerala, India • WhatsApp Support: <strong>${BRAND.whatsappDisplay}</strong>
               </p>
+
+              <!-- Social & Store Navigation -->
               <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center">
                 <tr>
-                  <td style="padding: 0 10px;">
-                    <a href="${BRAND.siteUrl}" style="color: #C7A66A; text-decoration: none; font-size: 11px; font-weight: 600;">Visit Boutique</a>
+                  <td style="padding: 0 8px;">
+                    <a href="${BRAND.siteUrl}" style="color: #23484A; text-decoration: none; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">Visit Boutique</a>
                   </td>
-                  <td style="color: #E5E0D8;">•</td>
-                  <td style="padding: 0 10px;">
-                    <a href="${BRAND.instagram}" style="color: #C7A66A; text-decoration: none; font-size: 11px; font-weight: 600;">Instagram</a>
+                  <td style="color: #C7A66A; font-size: 10px;">•</td>
+                  <td style="padding: 0 8px;">
+                    <a href="${BRAND.whatsapp}" style="color: #128C7E; text-decoration: none; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">WhatsApp Stylist</a>
                   </td>
-                  <td style="color: #E5E0D8;">•</td>
-                  <td style="padding: 0 10px;">
-                    <a href="${BRAND.whatsapp}" style="color: #C7A66A; text-decoration: none; font-size: 11px; font-weight: 600;">Chat on WhatsApp</a>
+                  <td style="color: #C7A66A; font-size: 10px;">•</td>
+                  <td style="padding: 0 8px;">
+                    <a href="${BRAND.instagram}" style="color: #23484A; text-decoration: none; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">Instagram</a>
                   </td>
                 </tr>
               </table>
+
+              <!-- Copyright & Agency Attribution -->
+              <p style="margin: 18px 0 0 0; font-size: 10px; color: #9AA3A2; line-height: 1.5;">
+                © ${new Date().getFullYear()} Fabstory by Fasna. All rights reserved.<br>
+                Crafted with love by <a href="https://ekodrix.com" style="color: #718887; text-decoration: underline;">Ekodrix</a> (ekodrix.com)
+              </p>
             </td>
           </tr>
 
         </table>
+
       </td>
     </tr>
   </table>
@@ -106,7 +157,7 @@ function baseEmailWrapper(title: string, bodyContent: string): string {
 }
 
 /**
- * 1. Password Reset OTP Template
+ * 1. Password Reset OTP Template (Amazon / Apple Security Style)
  */
 export function getOtpEmailHtml(options: {
   otp: string;
@@ -117,31 +168,50 @@ export function getOtpEmailHtml(options: {
   const greeting = customerName ? `Dear ${customerName},` : 'Hello,';
 
   const content = `
-    <h1 style="font-family: Georgia, serif; font-size: 22px; color: #23484A; margin: 0 0 12px 0; font-weight: 600;">
-      Password Reset Verification
-    </h1>
-    <p style="margin: 0 0 18px 0; font-size: 14px; line-height: 1.6; color: #4A5568;">
-      ${greeting} We received a request to reset your password for your <strong>${BRAND.fullName}</strong> account.
-    </p>
-    <p style="margin: 0 0 25px 0; font-size: 13px; line-height: 1.5; color: #6F7775;">
-      Use the secure one-time verification code below to set a new password. This code will expire in <strong>${expiryMinutes} minutes</strong>.
-    </p>
-
-    <!-- OTP Code Box -->
-    <div style="background-color: #FAF8F5; border: 2px dashed #C7A66A; border-radius: 8px; padding: 20px; text-align: center; margin: 25px 0;">
-      <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #6F7775; font-weight: 600; display: block; margin-bottom: 8px;">
-        Your Verification Code
+    <!-- Top Security Header -->
+    <div style="text-align: center; margin-bottom: 24px;">
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin-bottom: 12px;">
+        <tr>
+          <td style="background-color: #FAF8F5; border: 1.5px solid #C7A66A; width: 44px; height: 44px; border-radius: 50%; text-align: center; vertical-align: middle;">
+            <span style="font-size: 20px; line-height: 1;">🔐</span>
+          </td>
+        </tr>
+      </table>
+      <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; color: #C7A66A; display: block; margin-bottom: 6px;">
+        SECURITY VERIFICATION
       </span>
-      <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 700; letter-spacing: 8px; color: #23484A; display: inline-block;">
-        ${otp}
-      </span>
+      <h1 style="font-family: Georgia, Garamond, serif; font-size: 24px; color: #23484A; margin: 0 0 8px 0; font-weight: 600;">
+        Reset Your Account Password
+      </h1>
+      <p style="margin: 0; font-size: 13px; color: #6F7775; line-height: 1.5;">
+        ${greeting} We received a request to access your <strong>${BRAND.fullName}</strong> account.
+      </p>
     </div>
 
-    <p style="margin: 20px 0 0 0; font-size: 12px; line-height: 1.5; color: #718096;">
-      🔒 <strong>Security Tip:</strong> Never share this OTP with anyone. Fabstory will never call or message asking for your code.
-    </p>
-    <p style="margin: 10px 0 0 0; font-size: 12px; line-height: 1.5; color: #A0AEC0;">
-      If you did not request a password reset, you can safely ignore this email. Your account remains completely secure.
+    <!-- OTP Code Container (Amazon / Apple Style Monospace Spaced Digits) -->
+    <div style="background-color: #FAF8F5; border: 2px dashed #C7A66A; border-radius: 12px; padding: 26px 20px; text-align: center; margin: 24px 0;">
+      <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #6F7775; font-weight: 700; display: block; margin-bottom: 10px;">
+        One-Time Verification Code
+      </span>
+      <div style="background-color: #FFFFFF; border: 1px solid #E5E0D8; border-radius: 8px; padding: 14px 20px; display: inline-block; box-shadow: inset 0 2px 4px rgba(0,0,0,0.03);">
+        <span style="font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 800; letter-spacing: 12px; color: #23484A; display: inline-block; padding-left: 12px;">
+          ${otp}
+        </span>
+      </div>
+      <p style="margin: 12px 0 0 0; font-size: 11px; color: #8C6D37; font-weight: 600;">
+        ⏱ Expires in ${expiryMinutes} minutes
+      </p>
+    </div>
+
+    <!-- Security Warnings -->
+    <div style="background-color: #F8F9FA; border-left: 3px solid #23484A; padding: 14px 16px; border-radius: 4px; margin: 24px 0;">
+      <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #4A5568;">
+        <strong>Security Notice:</strong> Never share this verification code with anyone. Fabstory representatives will never ask for your password or OTP.
+      </p>
+    </div>
+
+    <p style="margin: 18px 0 0 0; font-size: 12px; line-height: 1.5; color: #9AA3A2; text-align: center;">
+      If you did not request this code, you can safely ignore this email. Your account remains protected.
     </p>
   `;
 
@@ -149,22 +219,34 @@ export function getOtpEmailHtml(options: {
 }
 
 /**
- * 2. Razorpay Order Confirmation (Customer)
+ * 2. Order Confirmation (Customer) — Nike / Zara / Amazon Luxury Style
  */
 export function getOrderConfirmationCustomerHtml(order: OrderData): string {
   const itemsHtml = (order.items || [])
     .map(
       (item) => `
       <tr>
-        <td style="padding: 12px 0; border-bottom: 1px solid #F0ECE4;">
-          <strong style="color: #23484A; font-size: 13px; display: block;">${item.name}</strong>
-          ${item.fabric || item.size ? `<span style="font-size: 11px; color: #6F7775;">${[item.fabric, item.size].filter(Boolean).join(' • ')}</span>` : ''}
-        </td>
-        <td align="center" style="padding: 12px 10px; border-bottom: 1px solid #F0ECE4; font-size: 12px; color: #4A5568;">
-          x${item.quantity}
-        </td>
-        <td align="right" style="padding: 12px 0; border-bottom: 1px solid #F0ECE4; font-size: 13px; font-weight: 600; color: #23484A;">
-          ₹ ${(item.price * item.quantity).toLocaleString('en-IN')}
+        <td style="padding: 16px 0; border-bottom: 1px solid #F0ECE4;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td style="vertical-align: top;">
+                <strong style="color: #23484A; font-size: 14px; display: block; font-family: Georgia, serif; line-height: 1.3;">
+                  ${item.name}
+                </strong>
+                <p style="margin: 4px 0 0 0; font-size: 12px; color: #6F7775;">
+                  ${[item.fabric, item.size ? `Size: ${item.size}` : ''].filter(Boolean).join(' • ')}
+                </p>
+                <span style="display: inline-block; font-size: 11px; font-weight: 600; color: #23484A; background-color: #FAF8F5; border: 1px solid #E5E0D8; padding: 2px 8px; border-radius: 3px; margin-top: 6px;">
+                  Qty: ${item.quantity}
+                </span>
+              </td>
+              <td align="right" style="vertical-align: top; white-space: nowrap;">
+                <span style="font-size: 14px; font-weight: 700; color: #23484A;">
+                  ₹ ${(item.price * item.quantity).toLocaleString('en-IN')}
+                </span>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>`
     )
@@ -184,64 +266,135 @@ export function getOrderConfirmationCustomerHtml(order: OrderData): string {
     : 'Provided at checkout';
 
   const content = `
-    <div style="text-align: center; margin-bottom: 25px;">
-      <span style="display: inline-block; background-color: #E6F4EA; color: #137333; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; padding: 4px 12px; rounded-full; border-radius: 20px;">
-        ✓ Order Confirmed
+    <!-- Order Confirmed Status Ribbon -->
+    <div style="text-align: center; margin-bottom: 26px;">
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin-bottom: 12px;">
+        <tr>
+          <td style="background-color: #E8F5E9; border: 1.5px solid #2E7D32; width: 44px; height: 44px; border-radius: 50%; text-align: center; vertical-align: middle;">
+            <span style="font-size: 20px; color: #2E7D32; line-height: 1;">✓</span>
+          </td>
+        </tr>
+      </table>
+      <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; color: #2E7D32; display: block; margin-bottom: 6px;">
+        PAYMENT VERIFIED • ORDER CONFIRMED
       </span>
-      <h1 style="font-family: Georgia, serif; font-size: 24px; color: #23484A; margin: 10px 0 4px 0; font-weight: 600;">
-        Thank You for Your Order!
+      <h1 style="font-family: Georgia, Garamond, serif; font-size: 26px; color: #23484A; margin: 0 0 6px 0; font-weight: 600;">
+        Thank You for Your Order
       </h1>
       <p style="margin: 0; font-size: 13px; color: #6F7775;">
-        Order #${order.order_number} has been received and verified.
+        Order reference <strong style="color: #23484A; font-family: monospace;">#${order.order_number}</strong>
       </p>
     </div>
 
-    <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #4A5568;">
-      Dear <strong>${order.customer_name}</strong>,<br>
-      We are thrilled to begin crafting your bespoke outfit. Your payment via <strong>${order.payment_method || 'Razorpay'}</strong> has been successfully processed.
-    </p>
+    <!-- Metadata 2-Column Info Card (Nike / Zara style) -->
+    <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #FAF8F5; border: 1px solid #E5E0D8; border-radius: 8px; margin-bottom: 26px;">
+      <tr>
+        <td style="padding: 16px; border-right: 1px solid #E5E0D8; width: 50%;">
+          <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8C6D37; display: block;">
+            CUSTOMER
+          </span>
+          <strong style="font-size: 13px; color: #243234; display: block; margin-top: 3px;">
+            ${order.customer_name}
+          </strong>
+          <span style="font-size: 11px; color: #6F7775; display: block; margin-top: 2px;">
+            ${order.customer_email}
+          </span>
+        </td>
+        <td style="padding: 16px; width: 50%;">
+          <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8C6D37; display: block;">
+            PAYMENT METHOD
+          </span>
+          <strong style="font-size: 13px; color: #243234; display: block; margin-top: 3px;">
+            Online Payment (Verified)
+          </strong>
+          <span style="font-size: 11px; color: #2E7D32; font-weight: 600; display: block; margin-top: 2px;">
+            ● 256-Bit SSL Encrypted
+          </span>
+        </td>
+      </tr>
+    </table>
 
-    <!-- Order Items Table -->
-    <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
-      <thead>
-        <tr style="border-bottom: 2px solid #23484A;">
-          <th align="left" style="padding-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6F7775;">Item</th>
-          <th align="center" style="padding-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6F7775;">Qty</th>
-          <th align="right" style="padding-bottom: 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6F7775;">Price</th>
-        </tr>
-      </thead>
+    <!-- Order Items Header -->
+    <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="border-bottom: 2px solid #23484A; padding-bottom: 8px; margin-bottom: 4px;">
+      <tr>
+        <td align="left">
+          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #23484A;">
+            Order Items Summary
+          </span>
+        </td>
+        <td align="right">
+          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #6F7775;">
+            Amount
+          </span>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Order Items List -->
+    <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0">
       <tbody>
         ${itemsHtml}
       </tbody>
-      <tfoot>
-        <tr>
-          <td colspan="2" align="left" style="padding-top: 14px; font-size: 13px; font-weight: 600; color: #243234;">
-            Total Paid
-          </td>
-          <td align="right" style="padding-top: 14px; font-size: 16px; font-weight: 700; color: #23484A;">
-            ₹ ${Number(order.total_amount).toLocaleString('en-IN')}
-          </td>
-        </tr>
-      </tfoot>
     </table>
 
-    <!-- Delivery Details Box -->
-    <div style="background-color: #FAF8F5; border: 1px solid #E5E0D8; border-radius: 8px; padding: 18px; margin: 25px 0;">
-      <h3 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #23484A;">
-        📦 Shipping & Delivery Address
-      </h3>
-      <p style="margin: 0; font-size: 13px; color: #4A5568; line-height: 1.5;">
-        ${shippingAddr}
-      </p>
-      <p style="margin: 8px 0 0 0; font-size: 11px; color: #6F7775;">
-        <strong>Estimated Delivery:</strong> 7 - 10 business days for tailored craftsmanship.
-      </p>
+    <!-- Totals Table -->
+    <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-top: 16px; border-top: 1px solid #E5E0D8; padding-top: 12px;">
+      <tr>
+        <td style="padding: 6px 0; font-size: 13px; color: #6F7775;">Subtotal</td>
+        <td align="right" style="padding: 6px 0; font-size: 13px; color: #243234; font-weight: 600;">
+          ₹ ${Number(order.total_amount).toLocaleString('en-IN')}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 6px 0; font-size: 13px; color: #6F7775;">Express Insured Delivery</td>
+        <td align="right" style="padding: 6px 0; font-size: 13px; color: #2E7D32; font-weight: 700;">
+          FREE
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 14px 0 0 0; font-size: 15px; font-weight: 700; color: #23484A; border-top: 2px solid #23484A;">
+          Total Paid
+        </td>
+        <td align="right" style="padding: 14px 0 0 0; font-size: 20px; font-weight: 800; color: #23484A; border-top: 2px solid #23484A;">
+          ₹ ${Number(order.total_amount).toLocaleString('en-IN')}
+        </td>
+      </tr>
+    </table>
+
+    <!-- Shipping Address & Fulfillment Card -->
+    <div style="background-color: #FAF8F5; border: 1px solid #E5E0D8; border-radius: 8px; padding: 20px; margin: 26px 0;">
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="vertical-align: top;">
+            <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #23484A; display: block; margin-bottom: 8px;">
+              📦 Delivery Address
+            </span>
+            <p style="margin: 0; font-size: 13px; color: #4A5568; line-height: 1.6;">
+              ${shippingAddr}
+            </p>
+            <p style="margin: 10px 0 0 0; font-size: 12px; color: #23484A; font-weight: 600;">
+              🚚 Estimated Delivery: <strong>3 – 5 Business Days</strong> (Express Courier)
+            </p>
+          </td>
+        </tr>
+      </table>
     </div>
 
-    <div style="text-align: center; margin-top: 30px;">
-      <a href="${BRAND.siteUrl}/track-order?order=${order.order_number}" style="display: inline-block; background-color: #23484A; color: #FFFFFF; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; padding: 12px 26px; border-radius: 4px; text-decoration: none;">
-        Track Order Status
+    <!-- Primary CTA Button (Zara / Nike High-Conversion Style) -->
+    <div style="text-align: center; margin: 32px 0 16px 0;">
+      <a href="${BRAND.siteUrl}/track-order?order=${order.order_number}" style="background-color: #23484A; color: #FFFFFF; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; padding: 15px 36px; border-radius: 6px; display: inline-block; text-decoration: none; box-shadow: 0 4px 14px rgba(35, 72, 74, 0.28);">
+        TRACK ORDER STATUS
       </a>
+    </div>
+
+    <!-- WhatsApp Support Pill -->
+    <div style="text-align: center; margin-top: 14px;">
+      <span style="font-size: 12px; color: #6F7775;">
+        Need alterations or styling guidance? 
+        <a href="${BRAND.whatsapp}?text=Hi%20Fasna,%20I%20have%20a%20question%20about%20order%20%23${order.order_number}" style="color: #128C7E; font-weight: 700; text-decoration: underline;">
+          Chat with Fasna on WhatsApp &rarr;
+        </a>
+      </span>
     </div>
   `;
 

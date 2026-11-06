@@ -22,30 +22,49 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const htmlContent = `
-    <div style="font-family: Georgia, serif; max-width: 500px; margin: 0 auto; padding: 25px; border: 1px solid #E5E0D8; border-radius: 8px; background: #FFFFFF;">
-      <h2 style="color: #23484A; margin-bottom: 8px;">✨ Brevo Email Integration Test</h2>
-      <p style="color: #6F7775; font-size: 13px; margin-top: 0;">Fabstory by Fasna Transactional Email System</p>
-      <hr style="border: none; border-top: 1px solid #E5E0D8; margin: 15px 0;" />
-      <p style="color: #243234; font-size: 14px; line-height: 1.6;">
-        Congratulations! Your Brevo API key and sender configuration are <strong>fully working</strong>.
-      </p>
-      <ul style="color: #4A5568; font-size: 12px; line-height: 1.8;">
-        <li><strong>Sender:</strong> ${process.env.BREVO_SENDER_NAME || BRAND.fullName} (${process.env.BREVO_SENDER_EMAIL})</li>
-        <li><strong>Recipient:</strong> ${targetEmail}</li>
-        <li><strong>Timestamp:</strong> ${new Date().toLocaleString('en-IN')}</li>
-      </ul>
-      <p style="color: #137333; font-size: 12px; font-weight: bold; margin-top: 20px;">
-        ✓ Ready for Password Reset OTP, Order Confirmations & Shipping Notifications.
-      </p>
-    </div>
-  `;
+  // Generate luxury branded order confirmation email for testing
+  const { getOrderConfirmationCustomerHtml } = await import('@/lib/email/templates');
+  const demoOrder = {
+    order_number: `FAB-${Date.now().toString().slice(-6)}`,
+    customer_name: 'Fasna',
+    customer_email: targetEmail,
+    customer_phone: '+91 96562 76402',
+    shipping_address: {
+      street: 'Emerald Villa, Marine Drive',
+      city: 'Kochi',
+      state: 'Kerala',
+      pincode: '682031'
+    },
+    items: [
+      {
+        id: 'item-1',
+        name: 'Handcrafted Anarkali Silk Gown',
+        fabric: 'Pure Mulberry Silk',
+        size: 'M (Tailored)',
+        quantity: 1,
+        price: 4999
+      },
+      {
+        id: 'item-2',
+        name: 'Zari Embroidered Dupatta',
+        fabric: 'Organza',
+        size: '2.5 Meters',
+        quantity: 1,
+        price: 1899
+      }
+    ],
+    total_amount: 6898,
+    payment_method: 'Instant Online Payment (UPI / Cards)',
+    created_at: new Date().toISOString()
+  };
+
+  const htmlContent = getOrderConfirmationCustomerHtml(demoOrder);
 
   const result = await sendBrevoEmail({
-    to: [{ email: targetEmail, name: 'Fabstory Test' }],
-    subject: `[Test] Brevo Integration Working — ${BRAND.fullName}`,
+    to: [{ email: targetEmail, name: 'Fasna' }],
+    subject: `Order #${demoOrder.order_number} Confirmed — ${BRAND.fullName}`,
     htmlContent,
-    tags: ['test-email'],
+    tags: ['order-confirmation-luxury-preview'],
   });
 
   if (!result.success) {
