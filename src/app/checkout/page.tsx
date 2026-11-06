@@ -48,9 +48,12 @@ export default function CheckoutPage() {
     const items = getCart();
     setCartItems(items);
 
-    // If any item has custom size, open notes accordion by default
+    // If any item has custom size, open notes accordion and set consultation flow
     if (items.some((i) => i.customSize || i.productType === 'CUSTOM')) {
       setShowNotes(true);
+      setPaymentOption('consultation');
+    } else {
+      setPaymentOption('online');
     }
 
     // Check for saved address from profile
@@ -493,131 +496,142 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              {/* Step 2: Payment Method */}
-              <div className="bg-white rounded-xl border border-[#E5E0D8] p-6 sm:p-8 space-y-5 shadow-xs">
-                <div className="border-b border-[#E5E0D8] pb-3 flex items-center justify-between">
-                  <h2 className="font-serif text-xl sm:text-2xl text-[#23484A] font-medium flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-[#23484A] text-white text-xs font-sans font-bold flex items-center justify-center">
-                      2
+              {/* Step 2: Payment or Customization Section (Strict Gated Flow) */}
+              {hasCustomItems ? (
+                /* Bespoke Consultation & Order Confirmation Flow (Customized Pieces) */
+                <div className="bg-white rounded-xl border border-emerald-200/90 p-6 sm:p-8 space-y-5 shadow-xs">
+                  <div className="border-b border-[#E5E0D8] pb-3 flex items-center justify-between">
+                    <h2 className="font-serif text-xl sm:text-2xl text-[#23484A] font-medium flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-[#1B7F5E] text-white text-xs font-sans font-bold flex items-center justify-center">
+                        2
+                      </span>
+                      <span>Bespoke Order Confirmation</span>
+                    </h2>
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full">
+                      Customized Order
                     </span>
-                    <span>Payment Method</span>
-                  </h2>
-                  <div className="flex items-center gap-1.5 text-[10px] text-[#718887]">
-                    <Lock className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>256-Bit SSL Encrypted</span>
                   </div>
-                </div>
 
-                <div className="space-y-3">
-                  {/* Option 1: Instant Online Payment */}
-                  <label
-                    className={`block p-4 sm:p-5 rounded-xl border transition-all cursor-pointer ${
-                      paymentOption === 'online'
-                        ? 'border-[#23484A] bg-[#FAF8F5] ring-1 ring-[#23484A]'
-                        : 'border-[#E5E0D8] bg-white hover:border-[#23484A]/40'
-                    }`}
-                  >
+                  <div className="bg-[#FAF8F5] border border-emerald-200/80 rounded-xl p-5 space-y-4">
                     <div className="flex items-start gap-3">
-                      <input
-                        type="radio"
-                        name="paymentOption"
-                        checked={paymentOption === 'online'}
-                        onChange={() => setPaymentOption('online')}
-                        className="accent-[#23484A] mt-1 cursor-pointer"
-                      />
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <span className="text-xs sm:text-sm font-bold text-[#243234]">
-                            Instant Online Payment
-                          </span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-full">
-                            Fast & Secure
-                          </span>
-                        </div>
-                        <p className="text-xs text-[#6F7775] leading-relaxed">
-                          Pay securely with Google Pay, PhonePe, Paytm, Any UPI App, Credit & Debit Cards, or Net Banking.
-                        </p>
-                        
-                        {/* Supported Payment Logos / Badges */}
-                        <div className="flex items-center gap-2 pt-1 flex-wrap">
-                          <span className="px-2 py-1 bg-white border border-[#E5E0D8] text-[10px] font-bold text-[#243234] rounded-xs shadow-2xs">
-                            UPI / QR
-                          </span>
-                          <span className="px-2 py-1 bg-white border border-[#E5E0D8] text-[10px] font-bold text-[#243234] rounded-xs shadow-2xs">
-                            Google Pay
-                          </span>
-                          <span className="px-2 py-1 bg-white border border-[#E5E0D8] text-[10px] font-bold text-[#243234] rounded-xs shadow-2xs">
-                            PhonePe
-                          </span>
-                          <span className="px-2 py-1 bg-white border border-[#E5E0D8] text-[10px] font-bold text-[#243234] rounded-xs shadow-2xs">
-                            Visa / Master
-                          </span>
-                          <span className="px-2 py-1 bg-white border border-[#E5E0D8] text-[10px] font-bold text-[#243234] rounded-xs shadow-2xs">
-                            Net Banking
-                          </span>
-                        </div>
+                      <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                        <MessageCircle className="w-5 h-5 text-emerald-700" />
                       </div>
-                    </div>
-                  </label>
-
-                  {/* Option 2: Bespoke Consultation & Order Confirmation */}
-                  <label
-                    className={`block p-4 sm:p-5 rounded-xl border transition-all cursor-pointer ${
-                      paymentOption === 'consultation'
-                        ? 'border-[#23484A] bg-[#FAF8F5] ring-1 ring-[#23484A]'
-                        : 'border-[#E5E0D8] bg-white hover:border-[#23484A]/40'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="radio"
-                        name="paymentOption"
-                        checked={paymentOption === 'consultation'}
-                        onChange={() => setPaymentOption('consultation')}
-                        className="accent-[#23484A] mt-1 cursor-pointer"
-                      />
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <span className="text-xs sm:text-sm font-bold text-[#243234] flex items-center gap-1.5">
-                            <MessageCircle className="w-4 h-4 text-emerald-600" />
-                            <span>WhatsApp Consultation & Order Confirmation</span>
-                          </span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-[#C7A66A]/20 text-[#23484A] px-2 py-0.5 rounded-full">
-                            Bespoke
-                          </span>
-                        </div>
+                      <div className="space-y-1">
+                        <h3 className="text-xs sm:text-sm font-bold text-[#243234]">
+                          WhatsApp Consultation with Designer Fasna
+                        </h3>
                         <p className="text-xs text-[#6F7775] leading-relaxed">
-                          Submit your order details now. Fasna will connect directly via WhatsApp to review your bespoke measurements, fabric choices, and finalize tailoring details before billing.
+                          This order includes custom-tailored pieces or bespoke sizing. Because every garment is handcrafted to your exact silhouette, payment is not collected online right now.
                         </p>
                       </div>
                     </div>
-                  </label>
-                </div>
 
-                {/* Primary CTA Button */}
-                <button
-                  type="submit"
-                  disabled={isProcessing}
-                  className="w-full bg-[#23484A] hover:bg-[#1A3536] text-white py-4 px-6 rounded-md font-semibold text-xs tracking-[0.14em] uppercase transition-all shadow-sm active:scale-[0.99] cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2 mt-4"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin text-[#C7A66A]" />
-                      <span>Processing Your Order...</span>
-                    </>
-                  ) : paymentOption === 'online' ? (
-                    <>
-                      <Lock className="w-4 h-4" />
-                      <span>Pay {formatPrice(total)} & Complete Order</span>
-                    </>
-                  ) : (
-                    <>
-                      <MessageCircle className="w-4 h-4" />
-                      <span>Submit Order to WhatsApp</span>
-                    </>
-                  )}
-                </button>
-              </div>
+                    {/* 3 Step Workflow */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-[#E5E0D8]/70 text-xs">
+                      <div className="bg-white p-3 rounded-xs border border-[#E5E0D8] space-y-1">
+                        <span className="text-[10px] font-bold text-[#C7A66A] uppercase block">Step 1</span>
+                        <p className="text-[11px] text-[#243234] font-medium leading-snug">Submit your address & measurement notes</p>
+                      </div>
+                      <div className="bg-white p-3 rounded-xs border border-[#E5E0D8] space-y-1">
+                        <span className="text-[10px] font-bold text-emerald-700 uppercase block">Step 2</span>
+                        <p className="text-[11px] text-[#243234] font-medium leading-snug">Connect directly with Fasna on WhatsApp</p>
+                      </div>
+                      <div className="bg-white p-3 rounded-xs border border-[#E5E0D8] space-y-1">
+                        <span className="text-[10px] font-bold text-[#23484A] uppercase block">Step 3</span>
+                        <p className="text-[11px] text-[#243234] font-medium leading-snug">Confirm tailoring details & delivery schedule</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Primary WhatsApp CTA Button */}
+                  <button
+                    type="submit"
+                    disabled={isProcessing}
+                    className="w-full bg-[#1B7F5E] hover:bg-[#156349] text-white py-4 px-6 rounded-md font-semibold text-xs tracking-[0.14em] uppercase transition-all shadow-sm active:scale-[0.99] cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2.5 mt-4"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-white" />
+                        <span>Submitting Bespoke Inquiry...</span>
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle className="w-4 h-4" />
+                        <span>Confirm & Order via WhatsApp</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                /* Instant Online Payment Flow (Ready to Ship Pieces) */
+                <div className="bg-white rounded-xl border border-[#E5E0D8] p-6 sm:p-8 space-y-5 shadow-xs">
+                  <div className="border-b border-[#E5E0D8] pb-3 flex items-center justify-between">
+                    <h2 className="font-serif text-xl sm:text-2xl text-[#23484A] font-medium flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-full bg-[#23484A] text-white text-xs font-sans font-bold flex items-center justify-center">
+                        2
+                      </span>
+                      <span>Payment Method</span>
+                    </h2>
+                    <div className="flex items-center gap-1.5 text-[10px] text-[#718887]">
+                      <Lock className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>256-Bit SSL Encrypted</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 sm:p-5 rounded-xl border border-[#23484A] bg-[#FAF8F5] ring-1 ring-[#23484A] space-y-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <span className="text-xs sm:text-sm font-bold text-[#243234]">
+                        Instant Online Payment
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-full">
+                        Fast & Secure
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#6F7775] leading-relaxed">
+                      All items in this order are in stock and ready to ship. Pay securely with Google Pay, PhonePe, Paytm, Any UPI App, Credit & Debit Cards, or Net Banking.
+                    </p>
+
+                    {/* Supported Payment Logos / Badges */}
+                    <div className="flex items-center gap-2 pt-1 flex-wrap">
+                      <span className="px-2 py-1 bg-white border border-[#E5E0D8] text-[10px] font-bold text-[#243234] rounded-xs shadow-2xs">
+                        UPI / QR
+                      </span>
+                      <span className="px-2 py-1 bg-white border border-[#E5E0D8] text-[10px] font-bold text-[#243234] rounded-xs shadow-2xs">
+                        Google Pay
+                      </span>
+                      <span className="px-2 py-1 bg-white border border-[#E5E0D8] text-[10px] font-bold text-[#243234] rounded-xs shadow-2xs">
+                        PhonePe
+                      </span>
+                      <span className="px-2 py-1 bg-white border border-[#E5E0D8] text-[10px] font-bold text-[#243234] rounded-xs shadow-2xs">
+                        Visa / Master
+                      </span>
+                      <span className="px-2 py-1 bg-white border border-[#E5E0D8] text-[10px] font-bold text-[#243234] rounded-xs shadow-2xs">
+                        Net Banking
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Primary Online Payment CTA Button */}
+                  <button
+                    type="submit"
+                    disabled={isProcessing}
+                    className="w-full bg-[#23484A] hover:bg-[#1A3536] text-white py-4 px-6 rounded-md font-semibold text-xs tracking-[0.14em] uppercase transition-all shadow-sm active:scale-[0.99] cursor-pointer disabled:opacity-70 flex items-center justify-center gap-2 mt-4"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-[#C7A66A]" />
+                        <span>Processing Your Order...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-4 h-4" />
+                        <span>Pay {formatPrice(total)} & Complete Order</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </form>
 
             {/* ============================================================ */}

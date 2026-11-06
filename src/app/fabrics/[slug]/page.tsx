@@ -3,25 +3,29 @@
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import BrandPromises from '@/components/home/BrandPromises';
 import type { Fabric } from '@/types';
 import { getFabrics } from '@/lib/supabase/services';
 import { formatPrice } from '@/lib/utils';
-import { Minus, Plus, Layers, ShoppingBag } from 'lucide-react';
+import { addToCart } from '@/lib/cart';
+import { Minus, Plus, Layers, ShoppingBag, Check, ArrowRight, Truck, ShieldCheck } from 'lucide-react';
 
 interface FabricPageProps {
   params: Promise<{ slug: string }>;
 }
 
 export default function FabricDetailPage({ params }: FabricPageProps) {
+  const router = useRouter();
   const resolvedParams = use(params);
   const slug = resolvedParams.slug;
 
   const [fabric, setFabric] = useState<Fabric | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [meters, setMeters] = useState(2);
+  const [addedSuccess, setAddedSuccess] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -143,18 +147,81 @@ export default function FabricDetailPage({ params }: FabricPageProps) {
                 </div>
               </div>
 
+              {/* Ready to Ship Badge */}
+              <div className="flex items-center gap-2 p-2.5 bg-emerald-50 border border-emerald-200/80 rounded-xs text-[11px] text-emerald-900">
+                <Truck className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span>
+                  <strong>Ready to Ship:</strong> Cut from bolt & dispatched within 24–48 hours with instant online payment.
+                </span>
+              </div>
+
               {/* Total Price */}
               <div className="pt-2 border-t border-[#E5E0D8] flex items-center justify-between text-sm">
                 <span className="text-[#6F7775]">Total Price:</span>
                 <span className="font-bold text-[#23484A] text-lg">{formatPrice(totalPrice)}</span>
               </div>
 
-              <Link
-                href="/cart"
-                className="w-full btn bg-[#23484A] text-white py-3.5 text-xs font-semibold uppercase tracking-wider block text-center hover:bg-[#1A3536]"
-              >
-                ADD FABRIC TO CART
-              </Link>
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    addToCart({
+                      productId: fabric.id,
+                      name: `${fabric.name} (${meters}m)`,
+                      slug: fabric.slug,
+                      fabric: fabric.material,
+                      size: `${meters} Meter${meters > 1 ? 's' : ''}`,
+                      customSize: false,
+                      productType: 'READY_STOCK',
+                      price: totalPrice,
+                      quantity: 1,
+                      image: fabricImage,
+                    });
+                    setAddedSuccess(true);
+                    setTimeout(() => setAddedSuccess(false), 2500);
+                  }}
+                  className="w-full bg-[#23484A] text-white py-3.5 text-xs font-semibold uppercase tracking-wider block text-center hover:bg-[#1A3536] transition-colors cursor-pointer rounded-xs shadow-2xs"
+                >
+                  {addedSuccess ? (
+                    <span className="inline-flex items-center gap-1.5 text-emerald-300 font-bold">
+                      <Check className="w-4 h-4" /> Added to Cart!
+                    </span>
+                  ) : (
+                    <span>Add Fabric to Cart</span>
+                  )}
+                </button>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href="/cart"
+                    className="border border-[#23484A] text-[#23484A] py-2.5 text-[11px] font-semibold uppercase tracking-wider block text-center hover:bg-[#23484A]/5 transition-colors rounded-xs"
+                  >
+                    View Cart
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      addToCart({
+                        productId: fabric.id,
+                        name: `${fabric.name} (${meters}m)`,
+                        slug: fabric.slug,
+                        fabric: fabric.material,
+                        size: `${meters} Meter${meters > 1 ? 's' : ''}`,
+                        customSize: false,
+                        productType: 'READY_STOCK',
+                        price: totalPrice,
+                        quantity: 1,
+                        image: fabricImage,
+                      });
+                      router.push('/checkout');
+                    }}
+                    className="bg-[#C7A66A] text-[#1A3536] py-2.5 text-[11px] font-bold uppercase tracking-wider block text-center hover:bg-[#B89555] transition-colors rounded-xs shadow-2xs cursor-pointer"
+                  >
+                    Buy Now
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

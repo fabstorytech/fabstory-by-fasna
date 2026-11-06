@@ -19,6 +19,8 @@ function OrderSuccessContent() {
   const customerEmail = searchParams.get('email');
   const paymentId = searchParams.get('payment_id');
 
+  const isOnlinePaid = Boolean(paymentId);
+
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
       {/* Main Luxury Receipt Card */}
@@ -27,21 +29,36 @@ function OrderSuccessContent() {
         {/* Animated Brand Emblem & Checkmark */}
         <div className="space-y-4">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#FAF8F5] border-2 border-[#C7A66A]/60 flex items-center justify-center mx-auto shadow-xs relative">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#23484A] text-white flex items-center justify-center">
-              <Check className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full text-white flex items-center justify-center ${
+              isOnlinePaid ? 'bg-[#23484A]' : 'bg-[#1B7F5E]'
+            }`}>
+              {isOnlinePaid ? (
+                <Check className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+              ) : (
+                <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+              )}
             </div>
           </div>
 
           <div className="space-y-2">
             <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-[0.25em] text-[#C7A66A] block">
-              Payment Received • Order Confirmed
+              {isOnlinePaid ? 'Payment Received • Order Confirmed' : 'Custom Request Received • WhatsApp Connected'}
             </span>
             <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#23484A] font-medium tracking-tight">
-              Thank You for Your Order
+              {isOnlinePaid ? 'Thank You for Your Order' : 'Bespoke Order Request Submitted'}
             </h1>
             <p className="text-xs sm:text-sm text-[#6F7775] max-w-lg mx-auto leading-relaxed">
-              We have received your payment of <span className="font-bold text-[#23484A]">{formatPrice(amount)}</span>. 
-              Our artisans will verify your details and begin crafting your bespoke piece.
+              {isOnlinePaid ? (
+                <>
+                  We have received your payment of <span className="font-bold text-[#23484A]">{formatPrice(amount)}</span>. 
+                  Your ready-to-ship pieces are being prepared for dispatch within 24–48 hours.
+                </>
+              ) : (
+                <>
+                  Your bespoke order request for <span className="font-bold text-[#23484A]">{formatPrice(amount)}</span> has been logged. 
+                  Our designer Fasna will review your measurements directly on WhatsApp to finalize tailoring details.
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -59,7 +76,7 @@ function OrderSuccessContent() {
               </span>
             </div>
 
-            {paymentId && (
+            {paymentId ? (
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[#9FA8A6] block">
                   Transaction Reference
@@ -68,11 +85,20 @@ function OrderSuccessContent() {
                   {paymentId}
                 </span>
               </div>
+            ) : (
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#9FA8A6] block">
+                  Order Type
+                </span>
+                <span className="text-xs font-semibold text-[#1B7F5E]">
+                  Bespoke Consultation (WhatsApp)
+                </span>
+              </div>
             )}
 
             <div className="flex items-center gap-1.5 text-xs text-emerald-800 font-medium">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span>Paid Online • Verified</span>
+              <span className={`w-2 h-2 rounded-full ${isOnlinePaid ? 'bg-emerald-500' : 'bg-[#1B7F5E]'}`} />
+              <span>{isOnlinePaid ? 'Paid Online • Verified' : 'WhatsApp Consultation Active'}</span>
             </div>
           </div>
 
@@ -83,7 +109,7 @@ function OrderSuccessContent() {
                 Estimated Delivery
               </span>
               <span className="text-xs sm:text-sm font-semibold text-[#243234]">
-                7 – 10 Business Days
+                {isOnlinePaid ? '3 – 5 Business Days (Express)' : '7 – 10 Business Days (Tailored)'}
               </span>
             </div>
 
@@ -93,14 +119,14 @@ function OrderSuccessContent() {
               </span>
               <span className="text-xs text-[#23484A] font-medium flex items-center gap-1.5">
                 <Package className="w-3.5 h-3.5 text-[#C7A66A]" />
-                <span>In Production & Tailoring Queue</span>
+                <span>{isOnlinePaid ? 'Ready for Dispatch (In Stock)' : 'In Tailoring Queue & Design Review'}</span>
               </span>
             </div>
 
             {customerEmail && (
               <div className="flex items-center gap-1.5 text-[11px] text-[#6F7775]">
                 <Mail className="w-3.5 h-3.5 text-[#C7A66A] shrink-0" />
-                <span className="truncate">Receipt sent to {customerEmail}</span>
+                <span className="truncate">Updates sent to {customerEmail}</span>
               </div>
             )}
           </div>

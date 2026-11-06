@@ -25,6 +25,11 @@ export async function POST(request: Request) {
         {
           folder: 'fabstory-products',
           resource_type: 'auto',
+          // Optimize storage and delivery to preserve Cloudinary free tier credits
+          transformation: [
+            { quality: 'auto:good' },
+            { fetch_format: 'auto' },
+          ],
         },
         (error, result) => {
           if (error) reject(error);

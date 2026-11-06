@@ -138,27 +138,30 @@ export async function POST(req: NextRequest) {
       };
 
       try {
-        // Customer Order Confirmation Email
+        const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || BRAND.email;
         const customerHtml = getOrderConfirmationCustomerHtml(orderData);
-        const customerEmailResult = await sendBrevoEmail({
-          to: [{ email: customerEmail, name: customerName }],
-          subject: `Order #${orderNumber} Confirmed — Fabstory by Fasna`,
-          htmlContent: customerHtml,
-          tags: ['order-confirmation'],
-        });
-
-        // Admin Notification Email
-        const adminEmail =
-          process.env.ADMIN_NOTIFICATION_EMAIL || BRAND.email;
         const adminHtml = getAdminOrderNotificationHtml(orderData);
-        const adminEmailResult = await sendBrevoEmail({
-          to: [{ email: adminEmail, name: 'Fabstory Admin' }],
-          subject: `[New Order #${orderNumber}] ₹ ${totalAmount} - ${customerName}`,
-          htmlContent: adminHtml,
-          tags: ['admin-order-notification'],
-        });
 
-        if (customerEmailResult.success || adminEmailResult.success) {
+        // Send customer confirmation & admin notification in parallel
+        const [customerRes, adminRes] = await Promise.allSettled([
+          sendBrevoEmail({
+            to: [{ email: customerEmail, name: customerName }],
+            subject: `Order #${orderNumber} Confirmed — Fabstory by Fasna`,
+            htmlContent: customerHtml,
+            tags: ['order-confirmation'],
+          }),
+          sendBrevoEmail({
+            to: [{ email: adminEmail, name: 'Fabstory Admin' }],
+            subject: `[New Order #${orderNumber}] ₹ ${totalAmount} - ${customerName}`,
+            htmlContent: adminHtml,
+            tags: ['admin-order-notification'],
+          }),
+        ]);
+
+        const customerSuccess = customerRes.status === 'fulfilled' && customerRes.value.success;
+        const adminSuccess = adminRes.status === 'fulfilled' && adminRes.value.success;
+
+        if (customerSuccess || adminSuccess) {
           // Mark confirmation_email_sent = true to prevent duplicate emails
           if (orderId) {
             await supabase
