@@ -24,7 +24,7 @@ interface OrderData {
   tracking_url?: string;
 }
 
-const BRAND_LOGO_URL = 'https://res.cloudinary.com/jwter84c/image/upload/v1793966507/fabstory-branding/fabstory_brand_logo.png';
+const BRAND_LOGO_URL = 'https://res.cloudinary.com/jwter84c/image/upload/v1793967372/fabstory-branding/fabstory_email_logo_perfect.png';
 
 function baseEmailWrapper(title: string, bodyContent: string): string {
   return `<!DOCTYPE html>
@@ -42,7 +42,7 @@ function baseEmailWrapper(title: string, bodyContent: string): string {
     @media only screen and (max-width: 620px) {
       .email-container { width: 100% !important; border-radius: 0 !important; }
       .email-content { padding: 24px 18px !important; }
-      .email-header { padding: 24px 16px !important; }
+      .email-header { padding: 26px 16px !important; }
       .brand-title { font-size: 20px !important; }
     }
   </style>
@@ -55,23 +55,23 @@ function baseEmailWrapper(title: string, bodyContent: string): string {
         <!-- Main Card Container -->
         <table role="presentation" class="email-container" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width: 600px; background-color: #FFFFFF; border: 1px solid #E5E0D8; border-radius: 14px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.06);">
           
-          <!-- Luxury Brand Header (Nike / Zara / Amazon Precision) -->
+          <!-- Luxury Brand Header (Nike / Zara Precision) -->
           <tr>
             <td class="email-header" align="center" style="background: linear-gradient(180deg, #1A3536 0%, #23484A 100%); padding: 32px 24px 28px 24px; border-bottom: 3px solid #C7A66A;">
-              <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center">
                 <tr>
-                  <td align="center">
+                  <td align="center" style="padding: 0;">
                     
-                    <!-- Circular Brand Emblem with Gold Border -->
-                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                    <!-- Perfect Fit Circular Brand Logo (Direct CDN Image with Embedded Gold Ring) -->
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 12px auto;">
                       <tr>
-                        <td align="center" style="background-color: #FFFFFF; border: 2.5px solid #C7A66A; width: 72px; height: 72px; border-radius: 50%; padding: 4px; box-shadow: 0 4px 14px rgba(0,0,0,0.22);">
+                        <td align="center" style="padding: 0; border: none; background: transparent;">
                           <img 
                             src="${BRAND_LOGO_URL}" 
                             alt="${BRAND.fullName}" 
-                            width="64" 
-                            height="64" 
-                            style="width: 64px; height: 64px; border-radius: 50%; object-fit: contain; display: block;"
+                            width="86" 
+                            height="86" 
+                            style="width: 86px; height: 86px; max-width: 86px; max-height: 86px; border: 0; outline: none; text-decoration: none; display: block; margin: 0 auto;"
                           />
                         </td>
                       </tr>
@@ -170,13 +170,7 @@ export function getOtpEmailHtml(options: {
   const content = `
     <!-- Top Security Header -->
     <div style="text-align: center; margin-bottom: 24px;">
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin-bottom: 12px;">
-        <tr>
-          <td style="background-color: #FAF8F5; border: 1.5px solid #C7A66A; width: 44px; height: 44px; border-radius: 50%; text-align: center; vertical-align: middle;">
-            <span style="font-size: 20px; line-height: 1;">🔐</span>
-          </td>
-        </tr>
-      </table>
+      <div style="font-size: 32px; line-height: 1; margin-bottom: 12px;">🛡️</div>
       <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; color: #C7A66A; display: block; margin-bottom: 6px;">
         SECURITY VERIFICATION
       </span>
@@ -268,15 +262,9 @@ export function getOrderConfirmationCustomerHtml(order: OrderData): string {
   const content = `
     <!-- Order Confirmed Status Ribbon -->
     <div style="text-align: center; margin-bottom: 26px;">
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin-bottom: 12px;">
-        <tr>
-          <td style="background-color: #E8F5E9; border: 1.5px solid #2E7D32; width: 44px; height: 44px; border-radius: 50%; text-align: center; vertical-align: middle;">
-            <span style="font-size: 20px; color: #2E7D32; line-height: 1;">✓</span>
-          </td>
-        </tr>
-      </table>
-      <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2.5px; color: #2E7D32; display: block; margin-bottom: 6px;">
-        PAYMENT VERIFIED • ORDER CONFIRMED
+      <div style="font-size: 32px; line-height: 1; margin-bottom: 12px;">✨</div>
+      <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #2E7D32; display: inline-block; background-color: #E8F5E9; border: 1px solid #C8E6C9; padding: 4px 14px; border-radius: 14px; margin-bottom: 10px;">
+        ✓ PAYMENT VERIFIED • ORDER CONFIRMED
       </span>
       <h1 style="font-family: Georgia, Garamond, serif; font-size: 26px; color: #23484A; margin: 0 0 6px 0; font-weight: 600;">
         Thank You for Your Order
