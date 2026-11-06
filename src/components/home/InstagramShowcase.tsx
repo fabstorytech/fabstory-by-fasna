@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import Image from '@/components/ui/CloudinaryImage';
 import { BRAND } from '@/lib/constants';
 import { CheckCircle2, ArrowUpRight } from 'lucide-react';
 

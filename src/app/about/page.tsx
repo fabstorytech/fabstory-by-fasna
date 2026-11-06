@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import Image from '@/components/ui/CloudinaryImage';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import BrandPromises from '@/components/home/BrandPromises';

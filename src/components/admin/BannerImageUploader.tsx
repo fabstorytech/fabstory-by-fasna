@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, DragEvent, ChangeEvent } from 'react';
-import Image from 'next/image';
+import Image from '@/components/ui/CloudinaryImage';
 import { Upload, Trash2, Image as ImageIcon, CheckCircle2, Sparkles, Plus } from 'lucide-react';
 
 interface BannerImageUploaderProps {

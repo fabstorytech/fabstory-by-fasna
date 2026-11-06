@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import Image from '@/components/ui/CloudinaryImage';
 import type { Category } from '@/types';
 import { getCategories } from '@/lib/supabase/services';
 import { MOCK_CATEGORIES } from '@/lib/constants';

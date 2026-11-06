@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
+import Image from '@/components/ui/CloudinaryImage';
 import { X, ChevronDown, MessageCircle, Search, Scissors, Sparkles, Layers, ArrowRight } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 

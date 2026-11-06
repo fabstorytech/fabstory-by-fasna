@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
+import Image from '@/components/ui/CloudinaryImage';
 import { ArrowUpRight, Scissors, Heart } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 

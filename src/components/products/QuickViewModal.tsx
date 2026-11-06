@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import Image from '@/components/ui/CloudinaryImage';
 import { useRouter } from 'next/navigation';
 import { X, Star, Heart, ShoppingBag, Check, Sparkles } from 'lucide-react';
 import type { Product } from '@/types';

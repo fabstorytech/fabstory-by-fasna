@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import Image from '@/components/ui/CloudinaryImage';
 import { getSiteSettings, SiteSettings, DEFAULT_SITE_SETTINGS } from '@/lib/supabase/services';
 
 interface HeroProps {

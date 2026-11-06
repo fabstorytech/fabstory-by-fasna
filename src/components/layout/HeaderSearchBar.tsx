@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import Image from '@/components/ui/CloudinaryImage';
 import { useRouter } from 'next/navigation';
 import { Search, X, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import type { Product } from '@/types';
