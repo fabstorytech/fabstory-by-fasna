@@ -86,3 +86,4 @@ export default function CloudinaryImage({
 
 // Named alias export for flexibility
 export { CloudinaryImage as Image };
+

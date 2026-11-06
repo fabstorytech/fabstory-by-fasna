@@ -8,7 +8,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import BrandPromises from '@/components/home/BrandPromises';
 import type { Product } from '@/types';
-import { getProductBySlug, getProducts, uploadImageToCloudinary } from '@/lib/supabase/services';
+import { getProductBySlug, getProducts } from '@/lib/supabase/services';
 import { formatPrice } from '@/lib/utils';
 import { addToCart } from '@/lib/cart';
 import { BRAND, getProductPageUrl } from '@/lib/constants';
@@ -58,29 +58,7 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
   const [sleeveLength, setSleeveLength] = useState('22');
   const [outfitLength, setOutfitLength] = useState('52');
   const [specialInstructions, setSpecialInstructions] = useState('');
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
-  const [isUploadingReference, setIsUploadingReference] = useState<boolean>(false);
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState<boolean>(false);
-
-  // Upload reference image file to Cloudinary via API
-  const handleReferenceFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadedFileName(file.name);
-    setIsUploadingReference(true);
-    try {
-      const url = await uploadImageToCloudinary(file);
-      if (url) {
-        setUploadedFileUrl(url);
-      }
-    } catch (err) {
-      console.error('Failed to upload reference image:', err);
-    } finally {
-      setIsUploadingReference(false);
-    }
-  };
 
   useEffect(() => {
     setLoading(true);
@@ -235,7 +213,6 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
       },
       specialInstructions,
       imageUrl,
-      referenceImageUrl: uploadedFileUrl || undefined,
       productUrl,
     });
   };
@@ -272,7 +249,6 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
           },
           instructions: specialInstructions,
           image: existingProductImage,
-          referenceImageUrl: uploadedFileUrl || '',
           productUrl,
         }),
       });
@@ -673,34 +649,17 @@ export default function ProductDetailPage({ params }: ProductPageProps) {
                     />
                   </div>
 
-                  {/* Upload Reference File */}
+                  {/* Reference Inspiration Note (No File Upload to Cloud Storage) */}
                   <div className="text-xs space-y-1">
                     <label className="block text-[#243234] font-semibold">
-                      Upload Reference (Optional)
+                      Reference Photos & Design Sketches
                     </label>
-                    <label className="flex items-center gap-3 p-3 border border-dashed border-[#E5E0D8] bg-[#F8F5EF] hover:border-[#23484A] rounded-xs cursor-pointer transition-colors">
-                      {isUploadingReference ? (
-                        <div className="w-4 h-4 border-2 border-[#23484A] border-t-transparent rounded-full animate-spin shrink-0" />
-                      ) : uploadedFileUrl ? (
-                        <Check className="w-4 h-4 text-green-600 shrink-0" />
-                      ) : (
-                        <Upload className="w-4 h-4 text-[#23484A] shrink-0" />
-                      )}
-                      <span className="text-xs text-[#6F7775] truncate">
-                        {isUploadingReference
-                          ? 'Uploading reference image...'
-                          : uploadedFileName
-                          ? `${uploadedFileName} (Uploaded)`
-                          : 'Choose File (No file chosen)'}
+                    <div className="flex items-center gap-2.5 p-3 border border-[#E5E0D8] bg-[#FAF8F5] rounded-xs text-[#6F7775]">
+                      <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="text-[11px] leading-snug">
+                        You can send design inspiration photos or sketches directly to Fasna via WhatsApp during consultation.
                       </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        disabled={isUploadingReference}
-                        className="hidden"
-                        onChange={handleReferenceFileUpload}
-                      />
-                    </label>
+                    </div>
                   </div>
                 </div>
 
